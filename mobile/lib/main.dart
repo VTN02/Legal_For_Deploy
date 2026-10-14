@@ -10,12 +10,8 @@ Future<void> main() async {
 
   // Load environment variables
   try {
-    await dotenv.load(fileName: "assets/.env");
-  } catch (_) {
-    try {
-      await dotenv.load(fileName: ".env");
-    } catch (_) {}
-  }
+  await dotenv.load(fileName: "assets/app_config.txt");
+} catch (_) {}
 
   // Initialize API configuration
   await ApiConfig.initialize();
