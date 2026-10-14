@@ -13,7 +13,6 @@ import {
   Clock,
   CheckCircle2,
   HelpCircle,
-  Briefcase,
   FileCheck,
   Layers,
   Gavel,
