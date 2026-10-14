@@ -171,11 +171,62 @@ public interface IPlanningCoordinatorService
         CancellationToken cancellationToken = default);
 
 
+    /// <summary>
+        /// Admin-only approval action for documentation workflows.
+        ///
+        /// Confirms the documentation workflow after Member 3 analysis and
+        /// Coordinator validation have completed successfully.
+        ///
+        /// Must update:
+        ///
+        /// ApprovalDecision
+        /// AgentStep
+        /// ToolExecution
+        /// ExecutionSummary
+        /// AuditLog
+        /// AgentWorkflow.Status
+        /// ServiceRequest.Status
+        ///
+        /// Idempotent if the documentation workflow was already completed.
+        /// </summary>
+        Task<AgentWorkflow> ApproveDocumentationAsync(
+            Guid workflowId,
+            int approverUserId,
+            string? comments = null,
+            CancellationToken cancellationToken = default);
+
+
     // -----------------------------------------------------------------
     // QUERY
     // -----------------------------------------------------------------
 
     Task<AgentWorkflow?> GetWorkflowAsync(
         Guid workflowId,
+        CancellationToken cancellationToken = default);
+
+
+    Task<AgentWorkflow> RejectWorkflowAsync(
+        Guid workflowId,
+        int approverUserId,
+        string? comments = null,
+        CancellationToken cancellationToken = default);
+
+    Task<AgentWorkflow> RequestRevisionAsync(
+        Guid workflowId,
+        int approverUserId,
+        string? comments = null,
+        CancellationToken cancellationToken = default);
+
+
+    Task<AgentWorkflow> ApproveWorkflowAsync(
+        Guid workflowId,
+        int approverUserId,
+        Guid? lawyerId = null,
+        Guid? slotId = null,
+        DateOnly? bookingDate = null,
+        string? comments = null,
+        CancellationToken cancellationToken = default);
+
+    Task<List<AgentWorkflow>> GetWorkflowsAsync(
         CancellationToken cancellationToken = default);
 }

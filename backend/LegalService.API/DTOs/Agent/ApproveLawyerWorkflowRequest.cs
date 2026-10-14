@@ -15,3 +15,8 @@ public sealed class ApproveLawyerWorkflowRequest
 
     public string? Comments { get; set; }
 }
+
+public sealed class ApproveDocumentationWorkflowRequest
+{
+    public string? Comments { get; set; }
+}

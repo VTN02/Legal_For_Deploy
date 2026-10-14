@@ -512,6 +512,359 @@ public class AgentWorkflowsController : ControllerBase
         }
     }
 
+    // 
+
+    [HttpPost("{id:guid}/approve-documentation")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ApproveDocumentation(
+            Guid id,
+            [FromBody] ApproveDocumentationWorkflowRequest request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var workflow =
+                    await _coordinator.ApproveDocumentationAsync(
+                        id,
+                        UserId,
+                        request.Comments,
+                        cancellationToken);
+
+                var documentationStep = workflow.AgentSteps
+                    .FirstOrDefault(x =>
+                        x.AgentName == "DocumentationClerkAgent");
+
+                return Ok(new
+                {
+                    workflowId = workflow.WorkflowId,
+                    status = workflow.Status,
+                    serviceRequestStatus =
+                        workflow.ServiceRequest?.Status.ToString(),
+
+                    documentationStep = documentationStep == null
+                        ? null
+                        : new
+                        {
+                            stepId = documentationStep.StepId,
+                            status = documentationStep.Status,
+                            outputPayload =
+                                documentationStep.OutputPayload
+                        },
+
+                    approvalDecision =
+                        workflow.ApprovalDecisions
+                            .OrderByDescending(x => x.DecidedAt)
+                            .Select(x => new
+                            {
+                                x.DecisionId,
+                                x.WorkflowId,
+                                x.ApproverId,
+                                x.Decision,
+                                x.Comments,
+                                x.DecidedAt
+                            })
+                            .FirstOrDefault(),
+
+                        executionSummary =
+                            workflow.ExecutionSummary == null
+                                ? null
+                                : new
+                                {
+                                    workflow.ExecutionSummary.SummaryId,
+                                    workflow.ExecutionSummary.WorkflowId,
+                                    workflow.ExecutionSummary.FinalOutcome,
+                                    workflow.ExecutionSummary.CreatedAt
+                                }
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpPost("{id:guid}/reject")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RejectWorkflow(
+            Guid id,
+            [FromBody] RejectWorkflowRequest request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var workflow =
+                    await _coordinator.RejectWorkflowAsync(
+                        id,
+                        UserId,
+                        request.Comments,
+                        cancellationToken);
+
+                return Ok(new
+                {
+                    workflowId = workflow.WorkflowId,
+                    status = workflow.Status,
+                    serviceRequestStatus =
+                        workflow.ServiceRequest?.Status.ToString(),
+
+                    approvalDecision =
+                        workflow.ApprovalDecisions
+                            .OrderByDescending(x => x.DecidedAt)
+                            .Select(x => new
+                            {
+                                x.DecisionId,
+                                x.WorkflowId,
+                                x.ApproverId,
+                                x.Decision,
+                                x.Comments,
+                                x.DecidedAt
+                            })
+                            .FirstOrDefault(),
+
+                    executionSummary =
+                        workflow.ExecutionSummary == null
+                            ? null
+                            : new
+                            {
+                                workflow.ExecutionSummary.SummaryId,
+                                workflow.ExecutionSummary.WorkflowId,
+                                workflow.ExecutionSummary.FinalOutcome,
+                                workflow.ExecutionSummary.CreatedAt
+                            }
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpPost("{id:guid}/revise")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ReviseWorkflow(
+            Guid id,
+            [FromBody] RevisionWorkflowRequest request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var workflow =
+                    await _coordinator.RequestRevisionAsync(
+                        id,
+                        UserId,
+                        request.Comments,
+                        cancellationToken);
+
+                return Ok(new
+                {
+                    workflowId = workflow.WorkflowId,
+                    status = workflow.Status,
+                    serviceRequestStatus =
+                        workflow.ServiceRequest?.Status.ToString(),
+
+                    approvalDecision =
+                        workflow.ApprovalDecisions
+                            .OrderByDescending(x => x.DecidedAt)
+                            .Select(x => new
+                            {
+                                x.DecisionId,
+                                x.WorkflowId,
+                                x.ApproverId,
+                                x.Decision,
+                                x.Comments,
+                                x.DecidedAt
+                            })
+                            .FirstOrDefault(),
+
+                    executionSummary =
+                        workflow.ExecutionSummary == null
+                            ? null
+                            : new
+                            {
+                                workflow.ExecutionSummary.SummaryId,
+                                workflow.ExecutionSummary.WorkflowId,
+                                workflow.ExecutionSummary.FinalOutcome,
+                                workflow.ExecutionSummary.CreatedAt
+                            }
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
+
+        [HttpPost("{id:guid}/approve")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> ApproveWorkflow(
+            Guid id,
+            [FromBody] ApproveWorkflowRequest request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var workflow = await _coordinator.ApproveWorkflowAsync(
+                    id,
+                    UserId,
+                    request.LawyerId,
+                    request.SlotId,
+                    request.BookingDate,
+                    request.Comments,
+                    cancellationToken);
+
+                return Ok(new
+                {
+                    workflowId = workflow.WorkflowId,
+                    status = workflow.Status,
+                    serviceRequestStatus =
+                        workflow.ServiceRequest?.Status.ToString(),
+
+                    approvalDecision = workflow.ApprovalDecisions
+                        .OrderByDescending(x => x.DecidedAt)
+                        .Select(x => new
+                        {
+                            x.DecisionId,
+                            x.WorkflowId,
+                            x.ApproverId,
+                            x.Decision,
+                            x.Comments,
+                            x.DecidedAt
+                        })
+                        .FirstOrDefault(),
+
+                    executionSummary =
+                        workflow.ExecutionSummary == null
+                            ? null
+                            : new
+                            {
+                                workflow.ExecutionSummary.SummaryId,
+                                workflow.ExecutionSummary.WorkflowId,
+                                workflow.ExecutionSummary.FinalOutcome,
+                                workflow.ExecutionSummary.CreatedAt
+                            }
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+        }
+
+    // ---------------------------------------------------------
+// GET ALL WORKFLOWS - ADMIN DASHBOARD
+// GET /api/agent-workflows
+// ---------------------------------------------------------
+
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetWorkflows(
+        CancellationToken cancellationToken)
+    {
+        var workflows =
+            await _coordinator.GetWorkflowsAsync(
+                cancellationToken);
+
+        var result = workflows
+            .Select(workflow =>
+            {
+                var totalSteps =
+                    workflow.AgentSteps.Count;
+
+                var completedSteps =
+                    workflow.AgentSteps.Count(x =>
+                        string.Equals(
+                            x.Status,
+                            "Completed",
+                            StringComparison.OrdinalIgnoreCase));
+
+                var failedSteps =
+                    workflow.AgentSteps.Count(x =>
+                        string.Equals(
+                            x.Status,
+                            "Failed",
+                            StringComparison.OrdinalIgnoreCase));
+
+                var latestApproval =
+                    workflow.ApprovalDecisions
+                        .OrderByDescending(x => x.DecidedAt)
+                        .FirstOrDefault();
+
+                return new
+                {
+                    workflowId = workflow.WorkflowId,
+                    serviceRequestId = workflow.ServiceRequestId,
+                    customerId = workflow.ServiceRequest?.CustomerId,
+                    title = workflow.ServiceRequest?.Title,
+                    requestType = workflow.ServiceRequest?.RequestType,
+                    priority = workflow.ServiceRequest?.Priority,
+                    serviceRequestStatus =
+                        workflow.ServiceRequest?.Status.ToString(),
+                    status = workflow.Status,
+                    totalSteps,
+                    completedSteps,
+                    failedSteps,
+                    progressPercentage =
+                        totalSteps == 0
+                            ? 0
+                            : (int)Math.Round(
+                                completedSteps * 100.0 / totalSteps),
+                    approvalDecision =
+                        latestApproval?.Decision,
+                    approvalComments =
+                        latestApproval?.Comments,
+                    hasExecutionSummary =
+                        workflow.ExecutionSummary != null,
+                    createdAt = workflow.CreatedAt,
+                    updatedAt = workflow.UpdatedAt
+                };
+            })
+            .OrderByDescending(x => x.createdAt)
+            .ToList();
+
+        return Ok(result);
+    }
+
+
+
     // ---------------------------------------------------------
     // GET WORKFLOW
     // GET /api/agent-workflows/{id}
@@ -575,68 +928,129 @@ public class AgentWorkflowsController : ControllerBase
             .OrderBy(x => x.order)
             .ToList();
 
-        return Ok(new
-        {
-            workflowId = workflow.WorkflowId,
 
-            serviceRequestId =
-                workflow.ServiceRequestId,
 
-            status =
-                workflow.Status,
 
-            createdAt =
-                workflow.CreatedAt,
 
-            updatedAt =
-                workflow.UpdatedAt,
 
-            serviceRequest =
-                workflow.ServiceRequest == null
-                    ? null
-                    : new
-                    {
-                        title =
-                            workflow.ServiceRequest.Title,
+            return Ok(new
+            {
+                workflowId = workflow.WorkflowId,
 
-                        description =
-                            workflow.ServiceRequest.Description,
+                serviceRequestId =
+                    workflow.ServiceRequestId,
 
-                        requestType =
-                            workflow.ServiceRequest.RequestType,
+                status =
+                    workflow.Status,
 
-                        priority =
-                            workflow.ServiceRequest.Priority,
+                createdAt =
+                    workflow.CreatedAt,
 
-                        status =
-                            workflow.ServiceRequest.Status
-                                .ToString()
-                    },
+                updatedAt =
+                    workflow.UpdatedAt,
 
-            steps,
+                serviceRequest =
+                    workflow.ServiceRequest == null
+                        ? null
+                        : new
+                        {
+                            serviceRequestId =
+                                workflow.ServiceRequest.ServiceRequestId,
 
-            validationResults =
-                workflow.ValidationResults,
+                            customerId =
+                                workflow.ServiceRequest.CustomerId,
 
-            approvalDecisions =
-                workflow.ApprovalDecisions
-                    .Select(x => new
-                    {
-                        decisionId =
-                            x.DecisionId,
+                            title =
+                                workflow.ServiceRequest.Title,
 
-                        decision =
-                            x.Decision,
+                            description =
+                                workflow.ServiceRequest.Description,
 
-                        comments =
-                            x.Comments,
+                            requestType =
+                                workflow.ServiceRequest.RequestType,
 
-                        decidedAt =
-                            x.DecidedAt
-                    }),
+                            priority =
+                                workflow.ServiceRequest.Priority,
 
-            executionSummary =
-                workflow.ExecutionSummary
-        });
+                            status =
+                                workflow.ServiceRequest.Status.ToString(),
+
+                            createdAt =
+                                workflow.ServiceRequest.CreatedAt,
+
+                            updatedAt =
+                                workflow.ServiceRequest.UpdatedAt
+                        },
+
+                steps,
+
+                validationResults =
+                    workflow.ValidationResults
+                        .Select(x => new
+                        {
+                            validationId =
+                                x.ValidationId,
+
+                            workflowId =
+                                x.WorkflowId,
+
+                            rulesChecked =
+                                x.RulesChecked,
+
+                            passed =
+                                x.Passed,
+
+                            errors =
+                                x.Errors,
+
+                            checkedAt =
+                                x.CheckedAt
+                        }),
+
+                approvalDecisions =
+                    workflow.ApprovalDecisions
+                        .Select(x => new
+                        {
+                            decisionId =
+                                x.DecisionId,
+
+                            workflowId =
+                                x.WorkflowId,
+
+                            approverId =
+                                x.ApproverId,
+
+                            decision =
+                                x.Decision,
+
+                            comments =
+                                x.Comments,
+
+                            decidedAt =
+                                x.DecidedAt
+                        }),
+
+                executionSummary =
+                    workflow.ExecutionSummary == null
+                        ? null
+                        : new
+                        {
+                            summaryId =
+                                workflow.ExecutionSummary.SummaryId,
+
+                            workflowId =
+                                workflow.ExecutionSummary.WorkflowId,
+
+                            finalOutcome =
+                                workflow.ExecutionSummary.FinalOutcome,
+
+                            createdAt =
+                                workflow.ExecutionSummary.CreatedAt
+                        }
+            });
+
+
+
+
     }
 }

@@ -32,7 +32,7 @@ class ServiceRequestService {
           }),
         )
         .timeout(
-          const Duration(seconds: 15),
+          const Duration(seconds: 60),
         );
 
     if (response.statusCode >= 200 &&

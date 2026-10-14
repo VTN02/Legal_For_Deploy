@@ -13,9 +13,10 @@ import {
 import { authApi } from "../../api/authApi";
 
 import {
-  createTestAiWorkflow,
-  type TestAiWorkflow,
-} from "../../data/aiWorkflowTestData";
+  agentWorkflowsApi,
+  type AgentWorkflowDetails,
+
+} from "../../api/agentWorkflowsApi";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -110,16 +111,29 @@ export const AdminServiceRequestsPage: React.FC = () => {
   // ───────────────────────────────────────────────────────────
 
   const [reviewRequest, setReviewRequest] =
-    useState<ServiceRequest | null>(null);
+  useState<ServiceRequest | null>(null);
 
-  const [aiWorkflow, setAiWorkflow] =
-    useState<TestAiWorkflow | null>(null);
+const [aiWorkflow, setAiWorkflow] =
+  useState<AgentWorkflowDetails | null>(null);
 
-  const [approvingAi, setApprovingAi] =
-    useState(false);
+const [aiWorkflowLoading, setAiWorkflowLoading] =
+  useState(false);
 
-  const [aiRejected, setAiRejected] =
-    useState(false);
+const [aiWorkflowError, setAiWorkflowError] =
+  useState<string | null>(null);
+
+const [approvingAi, setApprovingAi] =
+  useState(false);
+
+
+const [selectedLawyerId, setSelectedLawyerId] =
+  useState("");
+
+const [selectedBookingDate, setSelectedBookingDate] =
+  useState("");
+
+const [selectedSlotId, setSelectedSlotId] =
+  useState("");
 
   // ───────────────────────────────────────────────────────────
   // Load Requests
@@ -232,53 +246,404 @@ export const AdminServiceRequestsPage: React.FC = () => {
   // ───────────────────────────────────────────────────────────
   // AI Workflow
   // ───────────────────────────────────────────────────────────
+  const formatPayload = (
+  payload?: string | null
+) => {
+  if (!payload) return "No output available.";
 
-  const openAiWorkflow = (
-    request: ServiceRequest
-  ) => {
-    setReviewRequest(request);
-
-    setAiWorkflow(
-      createTestAiWorkflow(
-        request.serviceRequestId
-      )
+  try {
+    return JSON.stringify(
+      JSON.parse(payload),
+      null,
+      2
     );
+  } catch {
+    return payload;
+  }
+};
 
-    setAiRejected(false);
-  };
+
+
+
+
+
+
+
+  const openAiWorkflow = async (
+  request: ServiceRequest
+) => {
+  try {
+    setReviewRequest(request);
+    setAiWorkflow(null);
+    setAiWorkflowLoading(true);
+    setAiWorkflowError(null);
+
+    // Reset previous selection
+    setSelectedLawyerId("");
+    setSelectedBookingDate("");
+    setSelectedSlotId("");
+
+    // Get all workflows
+    const workflows =
+      await agentWorkflowsApi.getAll();
+
+    // Find workflow for selected service request
+    const matchedWorkflow =
+      workflows.find(
+        (workflow) =>
+          workflow.serviceRequestId ===
+          request.serviceRequestId
+      );
+
+    if (!matchedWorkflow) {
+      setAiWorkflowError(
+        "No AI workflow was found for this service request."
+      );
+
+      return;
+    }
+
+    // Get full workflow details
+    const details =
+      await agentWorkflowsApi.getById(
+        matchedWorkflow.workflowId
+      );
+
+    setAiWorkflow(details);
+
+    // ---------------------------------------------------------
+    // Prefill appointment data for an already completed workflow
+    // ---------------------------------------------------------
+
+    const completedLawyerStep =
+      details.steps.find(
+        (step) =>
+          step.agentName ===
+          "LawyerRecommendationAgent"
+      ) ?? null;
+
+    if (completedLawyerStep?.outputPayload) {
+      try {
+        const payload =
+          JSON.parse(
+            completedLawyerStep.outputPayload
+          );
+
+        const existingLawyerId =
+          payload.SelectedLawyerId ||
+          payload.ApprovedLawyerId ||
+          null;
+
+        const existingBookingDate =
+          payload.BookingDate ||
+          null;
+
+        const existingSlotId =
+          payload.SelectedSlotId ||
+          null;
+
+        if (existingLawyerId) {
+          setSelectedLawyerId(
+            existingLawyerId
+          );
+        }
+
+        if (existingBookingDate) {
+          setSelectedBookingDate(
+            existingBookingDate
+          );
+        }
+
+        if (existingSlotId) {
+          setSelectedSlotId(
+            existingSlotId
+          );
+        }
+      } catch {
+        // Ignore malformed/old workflow payload
+      }
+    }
+  } catch (err: any) {
+    setAiWorkflowError(
+      err.response?.data?.message ||
+        err.message ||
+        "Failed to load AI workflow."
+    );
+  } finally {
+    setAiWorkflowLoading(false);
+  }
+};
+
+  
+
+  //Laywer Step
+  const lawyerStep =
+  aiWorkflow?.steps.find(
+    (step) =>
+      step.agentName === "LawyerRecommendationAgent"
+  ) ?? null;
+
+const schedulingStep =
+  aiWorkflow?.steps.find(
+    (step) =>
+      step.agentName === "SchedulingAgent"
+  ) ?? null;
+
+  const parseJsonPayload = (
+  payload?: string | null
+): any | null => {
+  if (!payload) return null;
+
+  try {
+    return JSON.parse(payload);
+  } catch {
+    return null;
+  }
+};
+
+const lawyerPayload =
+  parseJsonPayload(
+    lawyerStep?.outputPayload
+  );
+
+const schedulingPayload =
+  parseJsonPayload(
+    schedulingStep?.outputPayload
+  );
+
+const recommendedLawyers: any[] =
+  lawyerPayload?.Recommendations ?? [];
+
+const selectedLawyerSchedule =
+  schedulingPayload?.recommendedLawyers?.find(
+    (item: any) =>
+      item.lawyerId === selectedLawyerId
+  ) ?? null;
+
+const availableDates: any[] =
+  selectedLawyerSchedule?.days?.filter(
+    (day: any) =>
+      Array.isArray(day.availableSlots) &&
+      day.availableSlots.length > 0
+  ) ?? [];
+
+const selectedDateData =
+  availableDates.find(
+    (day: any) =>
+      day.date === selectedBookingDate
+  ) ?? null;
+
+const availableSlots: any[] =
+  selectedDateData?.availableSlots ?? [];
+
+const documentationStep =
+  aiWorkflow?.steps.find(
+    (step) =>
+      step.agentName === "DocumentationClerkAgent"
+  ) ?? null;
+
+const validationStep =
+  aiWorkflow?.steps.find(
+    (step) =>
+      step.agentName === "PlanningCoordinatorAgent" &&
+      step.stepName === "Validate delegated results"
+  ) ?? null;
+
+const latestValidation =
+  aiWorkflow?.validationResults
+    ?.slice()
+    .sort(
+      (a, b) =>
+        new Date(b.checkedAt).getTime() -
+        new Date(a.checkedAt).getTime()
+    )[0] ?? null;
+
+const validationPassed =
+  latestValidation?.passed ?? false;
+
+
+  //format payload
+  
+
+
+
+
+
+
+
+
 
   const closeAiWorkflow = () => {
     setReviewRequest(null);
     setAiWorkflow(null);
-    setAiRejected(false);
     setApprovingAi(false);
   };
 
-  const approveAiWorkflow = async () => {
-    if (!aiWorkflow) return;
 
-    try {
-      setApprovingAi(true);
 
-      // Simulates processing delay for test workflow presentation.
-      await new Promise((resolve) =>
-        setTimeout(resolve, 900)
+
+const approveAiWorkflow = async () => {
+  if (!aiWorkflow) return;
+
+  try {
+    setApprovingAi(true);
+    setAiWorkflowError(null);
+
+    const requiresLawyer =
+      !!lawyerStep;
+
+    if (
+      requiresLawyer &&
+      !selectedLawyerId
+    ) {
+      throw new Error(
+        "Please select a lawyer."
+      );
+    }
+
+    if (
+      requiresLawyer &&
+      !selectedBookingDate
+    ) {
+      throw new Error(
+        "Please select a booking date."
+      );
+    }
+
+    if (
+      requiresLawyer &&
+      !selectedSlotId
+    ) {
+      throw new Error(
+        "Please select an appointment slot."
+      );
+    }
+
+    await agentWorkflowsApi.approve(
+      aiWorkflow.workflowId,
+      {
+        lawyerId:
+          requiresLawyer
+            ? selectedLawyerId
+            : null,
+
+        slotId:
+          requiresLawyer
+            ? selectedSlotId
+            : null,
+
+        bookingDate:
+          requiresLawyer
+            ? selectedBookingDate
+            : null,
+
+        comments:
+          "Approved by administrator",
+      }
+    );
+
+    const refreshed =
+      await agentWorkflowsApi.getById(
+        aiWorkflow.workflowId
       );
 
-      setAiWorkflow({
-        ...aiWorkflow,
-        status: "Completed",
-      });
+    setAiWorkflow(refreshed);
 
-      setAiRejected(false);
-    } finally {
-      setApprovingAi(false);
-    }
-  };
+    await fetchAll();
+  } catch (err: any) {
+    setAiWorkflowError(
+      err.response?.data?.message ||
+        err.message ||
+        "Failed to approve workflow."
+    );
+  } finally {
+    setApprovingAi(false);
+  }
+};
 
-  const rejectAiWorkflow = () => {
-    setAiRejected(true);
-  };
+
+
+
+
+
+const rejectAiWorkflow = async () => {
+  if (!aiWorkflow) return;
+
+  const confirmed = window.confirm(
+    "Are you sure you want to reject this AI workflow?"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    setApprovingAi(true);
+    setAiWorkflowError(null);
+
+    await agentWorkflowsApi.reject(
+      aiWorkflow.workflowId,
+      {
+        comments: "Rejected by administrator",
+      }
+    );
+
+    const refreshed =
+      await agentWorkflowsApi.getById(
+        aiWorkflow.workflowId
+      );
+
+    setAiWorkflow(refreshed);
+
+    await fetchAll();
+  } catch (err: any) {
+    setAiWorkflowError(
+      err.response?.data?.message ||
+        err.message ||
+        "Failed to reject workflow."
+    );
+  } finally {
+    setApprovingAi(false);
+  }
+};
+
+const reviseAiWorkflow = async () => {
+  if (!aiWorkflow) return;
+
+  const confirmed = window.confirm(
+    "Are you sure you want to request a revision for this AI workflow?"
+  );
+
+  if (!confirmed) return;
+
+  try {
+    setApprovingAi(true);
+    setAiWorkflowError(null);
+
+    await agentWorkflowsApi.revise(
+      aiWorkflow.workflowId,
+      {
+        comments: "Revision requested by administrator",
+      }
+    );
+
+    const refreshed =
+      await agentWorkflowsApi.getById(
+        aiWorkflow.workflowId
+      );
+
+    setAiWorkflow(refreshed);
+
+    await fetchAll();
+  } catch (err: any) {
+    setAiWorkflowError(
+      err.response?.data?.message ||
+        err.message ||
+        "Failed to request workflow revision."
+    );
+  } finally {
+    setApprovingAi(false);
+  }
+};
+ 
 
   // ───────────────────────────────────────────────────────────
   // Status modal derived values
@@ -542,494 +907,601 @@ export const AdminServiceRequestsPage: React.FC = () => {
         </div>
       )}
 
-      {/* ─────────────────────────────────────────────── */}
-      {/* AI Workflow Review Modal */}
-      {/* ─────────────────────────────────────────────── */}
+     {/* ─────────────────────────────────────────────── */}
+    {/* AI Workflow Review Modal */}
+    {/* ─────────────────────────────────────────────── */}
 
-      {reviewRequest &&
-        aiWorkflow && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] overflow-y-auto">
-              {/* Header */}
+    {reviewRequest && (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[92vh] overflow-y-auto">
 
-              <div className="p-6 border-b border-slate-200">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-xl font-bold text-slate-900">
-                        AI Workflow Review
-                      </h2>
+          {/* Header */}
+          <div className="p-6 border-b border-slate-200">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900">
+                  AI Workflow Review
+                </h2>
 
-                      <span className="bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-1 rounded-full text-xs font-semibold">
-                        Test Data
-                      </span>
-                    </div>
-
-                    <p className="text-sm text-slate-500 mt-1">
-                      Review the coordinator
-                      result before approving
-                      the final action.
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={
-                      closeAiWorkflow
-                    }
-                    className="text-slate-400 hover:text-slate-700 text-xl"
-                  >
-                    ✕
-                  </button>
-                </div>
+                <p className="text-sm text-slate-500 mt-1">
+                  Review the coordinator workflow and specialist agent results.
+                </p>
               </div>
 
-              <div className="p-6 space-y-5">
-                {/* Customer Request */}
+              <button
+                onClick={closeAiWorkflow}
+                className="text-slate-400 hover:text-slate-700 text-xl"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
 
-                <div className="border border-slate-200 rounded-xl p-5">
-                  <p className="text-xs uppercase tracking-wide font-semibold text-slate-400 mb-2">
-                    Customer Request
-                  </p>
+          {/* Loading */}
+          {aiWorkflowLoading && (
+            <div className="p-12 text-center text-slate-500">
+              Loading AI workflow...
+            </div>
+          )}
 
-                  <h3 className="font-bold text-slate-900 text-lg">
-                    {
-                      reviewRequest.title
-                    }
-                  </h3>
+          {/* Error */}
+          {!aiWorkflowLoading && aiWorkflowError && (
+            <div className="p-6">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
+                {aiWorkflowError}
+              </div>
+            </div>
+          )}
 
-                  <div className="grid sm:grid-cols-3 gap-4 mt-4">
-                    <div>
-                      <p className="text-xs text-slate-400 uppercase">
-                        Customer
-                      </p>
+          {/* Real Workflow */}
+          {!aiWorkflowLoading &&
+            !aiWorkflowError &&
+            aiWorkflow && (
+              <>
+                <div className="p-6 space-y-6">
 
-                      <p className="font-medium text-slate-700 mt-1">
-                        {
-                          reviewRequest.customerName
-                        }
-                      </p>
+                  {/* Customer Request */}
+                  <div className="border border-slate-200 rounded-xl p-5">
+                    <p className="text-xs uppercase tracking-wide font-semibold text-slate-400">
+                      Customer Request
+                    </p>
+
+                    <h3 className="font-bold text-slate-900 text-lg mt-2">
+                      {reviewRequest.title}
+                    </h3>
+
+                    <div className="grid sm:grid-cols-3 gap-4 mt-4">
+                      <div>
+                        <p className="text-xs uppercase text-slate-400">
+                          Customer
+                        </p>
+
+                        <p className="font-medium text-slate-700 mt-1">
+                          {reviewRequest.customerName || "—"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs uppercase text-slate-400">
+                          Request Type
+                        </p>
+
+                        <p className="font-medium text-slate-700 mt-1">
+                          {reviewRequest.requestType}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs uppercase text-slate-400">
+                          Priority
+                        </p>
+
+                        <p className="font-medium text-slate-700 mt-1">
+                          {reviewRequest.priority || "Normal"}
+                        </p>
+                      </div>
                     </div>
 
-                    <div>
-                      <p className="text-xs text-slate-400 uppercase">
-                        Request Type
-                      </p>
+                    {aiWorkflow.serviceRequest?.description && (
+                      <div className="mt-4">
+                        <p className="text-xs uppercase text-slate-400">
+                          Description
+                        </p>
 
-                      <p className="font-medium text-slate-700 mt-1">
-                        {
-                          reviewRequest.requestType
-                        }
-                      </p>
-                    </div>
+                        <p className="text-sm text-slate-600 mt-1">
+                          {aiWorkflow.serviceRequest.description}
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
-                    <div>
-                      <p className="text-xs text-slate-400 uppercase">
-                        Priority
-                      </p>
+                  {/* Coordinator */}
+                  <div className="border border-purple-200 bg-purple-50 rounded-xl p-5">
+                    <div className="flex flex-wrap justify-between gap-4">
+                      <div>
+                        <p className="text-xs uppercase font-semibold text-purple-500">
+                          Planning / Coordinator Agent
+                        </p>
 
-                      <p className="font-medium text-slate-700 mt-1">
-                        {reviewRequest.priority ||
-                          "Normal"}
-                      </p>
+                        <p className="font-bold text-purple-900 mt-1 text-lg">
+                          Multi-Agent Workflow
+                        </p>
+
+                        <p className="text-xs text-purple-600 mt-2 break-all">
+                          Workflow ID: {aiWorkflow.workflowId}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span
+                          className={`inline-flex px-3 py-1.5 rounded-full text-xs font-bold ${
+                            aiWorkflow.status === "Completed"
+                              ? "bg-green-100 text-green-700"
+                              : aiWorkflow.status === "AwaitingApproval"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : aiWorkflow.status === "Rejected"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-blue-100 text-blue-700"
+                          }`}
+                        >
+                          {aiWorkflow.status}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Coordinator */}
+                  {/* Specialist Agents */}
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 mb-3">
+                      Specialist Agent Results
+                    </h3>
 
-                <div className="border border-purple-200 bg-purple-50 rounded-xl p-5">
-                  <div className="flex flex-wrap justify-between gap-4">
-                    <div>
-                      <p className="text-xs uppercase font-semibold text-purple-500">
-                        Planning /
-                        Coordinator Agent
-                      </p>
+                    <div className="grid md:grid-cols-3 gap-4">
 
-                      <p className="font-bold text-purple-900 mt-1 text-lg">
-                        Multi-Agent Analysis
-                        Completed
-                      </p>
+                      {/* Lawyer */}
+                      {lawyerStep && (
+                        <div className="border border-slate-200 rounded-xl p-5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-bold text-slate-800">
+                                Lawyer Recommendation
+                              </p>
 
-                      <p className="text-xs text-purple-600 mt-2 break-all">
-                        Workflow ID:{" "}
-                        {
-                          aiWorkflow.workflowId
-                        }
-                      </p>
-                    </div>
+                              <p className="text-xs text-slate-400 mt-1">
+                                Member 1 Agent
+                              </p>
+                            </div>
 
-                    <div>
-                      <span
-                        className={`inline-flex px-3 py-1.5 rounded-full text-xs font-bold ${
-                          aiWorkflow.status ===
-                          "Completed"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {
-                          aiWorkflow.status
-                        }
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Specialist Agents */}
-
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 mb-3">
-                    Specialist Agent
-                    Results
-                  </h3>
-
-                  <div className="grid md:grid-cols-3 gap-4">
-                    {/* Lawyer */}
-
-                    <div className="border border-slate-200 rounded-xl p-5">
-                      <div className="flex items-start justify-between gap-2 mb-4">
-                        <div>
-                          <p className="font-bold text-slate-800">
-                            Lawyer
-                            Recommendation
-                          </p>
-
-                          <p className="text-xs text-slate-400 mt-1">
-                            Member 1 Agent
-                          </p>
-                        </div>
-
-                        <span className="text-xs font-bold text-green-600">
-                          ✓ Completed
-                        </span>
-                      </div>
-
-                      <p className="font-bold text-slate-900">
-                        {
-                          aiWorkflow.lawyer
-                            .name
-                        }
-                      </p>
-
-                      <p className="text-sm text-slate-500 mt-1">
-                        {
-                          aiWorkflow.lawyer
-                            .qualification
-                        }
-                      </p>
-
-                      <p className="text-sm text-slate-600 mt-3">
-                        {
-                          aiWorkflow.lawyer
-                            .practiceArea
-                        }
-                      </p>
-
-                      <p className="text-sm text-slate-500 mt-1">
-                        {
-                          aiWorkflow.lawyer
-                            .experience
-                        }{" "}
-                        years experience
-                      </p>
-                    </div>
-
-                    {/* Scheduling */}
-
-                    <div className="border border-slate-200 rounded-xl p-5">
-                      <div className="flex items-start justify-between gap-2 mb-4">
-                        <div>
-                          <p className="font-bold text-slate-800">
-                            Scheduling
-                          </p>
-
-                          <p className="text-xs text-slate-400 mt-1">
-                            Member 2 Agent
-                          </p>
-                        </div>
-
-                        <span className="text-xs font-bold text-green-600">
-                          ✓ Completed
-                        </span>
-                      </div>
-
-                      <p className="text-xs uppercase text-slate-400">
-                        Selected Date
-                      </p>
-
-                      <p className="font-bold text-slate-900 mt-1">
-                        {
-                          aiWorkflow.slot
-                            .date
-                        }
-                      </p>
-
-                      <p className="text-xs uppercase text-slate-400 mt-4">
-                        Time
-                      </p>
-
-                      <p className="font-semibold text-slate-700 mt-1">
-                        {
-                          aiWorkflow.slot
-                            .time
-                        }
-                      </p>
-                    </div>
-
-                    {/* Documentation */}
-
-                    <div className="border border-slate-200 rounded-xl p-5">
-                      <div className="flex items-start justify-between gap-2 mb-4">
-                        <div>
-                          <p className="font-bold text-slate-800">
-                            Documentation
-                          </p>
-
-                          <p className="text-xs text-slate-400 mt-1">
-                            Member 3 Agent
-                          </p>
-                        </div>
-
-                        <span className="text-xs font-bold text-green-600">
-                          ✓ Completed
-                        </span>
-                      </div>
-
-                      <p className="text-xs uppercase text-slate-400 mb-2">
-                        Required
-                        Documents
-                      </p>
-
-                      <div className="space-y-2">
-                        {aiWorkflow.documents.map(
-                          (
-                            document
-                          ) => (
-                            <p
-                              key={
-                                document
-                              }
-                              className="text-sm text-slate-600"
+                            <span
+                              className={`text-xs font-bold ${
+                                lawyerStep.status === "Completed"
+                                  ? "text-green-600"
+                                  : lawyerStep.status === "Failed"
+                                  ? "text-red-600"
+                                  : "text-amber-600"
+                              }`}
                             >
-                              <span className="text-green-600 font-bold mr-2">
-                                ✓
-                              </span>
+                              {lawyerStep.status}
+                            </span>
+                          </div>
 
-                              {
-                                document
-                              }
+                          <pre className="mt-4 text-xs bg-slate-50 rounded-lg p-3 overflow-auto whitespace-pre-wrap break-words max-h-56">
+                            {formatPayload(lawyerStep.outputPayload)}
+                          </pre>
+                        </div>
+                      )}
+
+                      {/* Scheduling */}
+                      {schedulingStep && (
+                        <div className="border border-slate-200 rounded-xl p-5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-bold text-slate-800">
+                                Scheduling
+                              </p>
+
+                              <p className="text-xs text-slate-400 mt-1">
+                                Member 2 Agent
+                              </p>
+                            </div>
+
+                            <span
+                              className={`text-xs font-bold ${
+                                schedulingStep.status === "Completed"
+                                  ? "text-green-600"
+                                  : schedulingStep.status === "Failed"
+                                  ? "text-red-600"
+                                  : "text-amber-600"
+                              }`}
+                            >
+                              {schedulingStep.status}
+                            </span>
+                          </div>
+
+                          <pre className="mt-4 text-xs bg-slate-50 rounded-lg p-3 overflow-auto whitespace-pre-wrap break-words max-h-56">
+                            {formatPayload(
+                              schedulingStep.outputPayload
+                            )}
+                          </pre>
+                        </div>
+                      )}
+
+                      {/* Documentation */}
+                      {documentationStep && (
+                        <div className="border border-slate-200 rounded-xl p-5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="font-bold text-slate-800">
+                                Documentation
+                              </p>
+
+                              <p className="text-xs text-slate-400 mt-1">
+                                Member 3 Agent
+                              </p>
+                            </div>
+
+                            <span
+                              className={`text-xs font-bold ${
+                                documentationStep.status === "Completed"
+                                  ? "text-green-600"
+                                  : documentationStep.status === "Failed"
+                                  ? "text-red-600"
+                                  : "text-amber-600"
+                              }`}
+                            >
+                              {documentationStep.status}
+                            </span>
+                          </div>
+
+                          <pre className="mt-4 text-xs bg-slate-50 rounded-lg p-3 overflow-auto whitespace-pre-wrap break-words max-h-56">
+                            {formatPayload(
+                              documentationStep.outputPayload
+                            )}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {lawyerStep && (
+                  <div className="border border-blue-200 bg-blue-50 rounded-xl p-5">
+                    <h3 className="font-bold text-slate-900 mb-4">
+                      Appointment Selection
+                    </h3>
+
+                    <div className="grid md:grid-cols-3 gap-4">
+
+                      {/* Lawyer */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">
+                          Lawyer
+                        </label>
+
+                        <select
+                          value={selectedLawyerId}
+                          onChange={(e) => {
+                            setSelectedLawyerId(
+                              e.target.value
+                            );
+
+                            setSelectedBookingDate("");
+                            setSelectedSlotId("");
+                          }}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm"
+                        >
+                          <option value="">
+                            Select lawyer
+                          </option>
+
+                          {recommendedLawyers.map(
+                            (lawyer: any) => (
+                              <option
+                                key={lawyer.LawyerId}
+                                value={lawyer.LawyerId}
+                              >
+                                {lawyer.FullName} -{" "}
+                                {lawyer.PracticeArea}
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </div>
+
+                      {/* Date */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">
+                          Booking Date
+                        </label>
+
+                        <select
+                          value={selectedBookingDate}
+                          disabled={!selectedLawyerId}
+                          onChange={(e) => {
+                            setSelectedBookingDate(
+                              e.target.value
+                            );
+
+                            setSelectedSlotId("");
+                          }}
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm disabled:bg-slate-100"
+                        >
+                          <option value="">
+                            Select date
+                          </option>
+
+                          {availableDates.map(
+                            (day: any) => (
+                              <option
+                                key={day.date}
+                                value={day.date}
+                              >
+                                {day.date}
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </div>
+
+                      {/* Slot */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">
+                          Time Slot
+                        </label>
+
+                        <select
+                          value={selectedSlotId}
+                          disabled={!selectedBookingDate}
+                          onChange={(e) =>
+                            setSelectedSlotId(
+                              e.target.value
+                            )
+                          }
+                          className="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white text-sm disabled:bg-slate-100"
+                        >
+                          <option value="">
+                            Select time
+                          </option>
+
+                          {availableSlots.map(
+                            (slot: any) => (
+                              <option
+                                key={slot.slotId}
+                                value={slot.slotId}
+                              >
+                                {slot.start} - {slot.end}
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </div>
+
+                    </div>
+                  </div>
+                )}
+
+                  {/* All Workflow Steps */}
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 mb-3">
+                      Workflow Steps
+                    </h3>
+
+                    <div className="space-y-3">
+                      {aiWorkflow.steps.map((step) => (
+                        <div
+                          key={step.stepId}
+                          className="border border-slate-200 rounded-xl p-4"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-slate-800">
+                                {step.order}. {step.stepName}
+                              </p>
+
+                              <p className="text-xs text-slate-500 mt-1">
+                                {step.agentName}
+                              </p>
+                            </div>
+
+                            <span
+                              className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                                step.status === "Completed"
+                                  ? "bg-green-100 text-green-700"
+                                  : step.status === "Failed"
+                                  ? "bg-red-100 text-red-700"
+                                  : step.status === "Running"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-slate-100 text-slate-600"
+                              }`}
+                            >
+                              {step.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Validation */}
+                  <div
+                    className={`rounded-xl border p-5 ${
+                      validationPassed
+                        ? "bg-green-50 border-green-200"
+                        : latestValidation
+                        ? "bg-red-50 border-red-200"
+                        : "bg-slate-50 border-slate-200"
+                    }`}
+                  >
+                    <p className="text-xs uppercase font-semibold text-slate-500">
+                      Coordinator Validation
+                    </p>
+
+                    <p
+                      className={`font-bold text-lg mt-1 ${
+                        validationPassed
+                          ? "text-green-700"
+                          : latestValidation
+                          ? "text-red-700"
+                          : "text-slate-700"
+                      }`}
+                    >
+                      {latestValidation
+                        ? validationPassed
+                          ? "✓ Validation Passed"
+                          : "✕ Validation Failed"
+                        : "Validation Pending"}
+                    </p>
+
+                    {validationStep && (
+                      <p className="text-sm text-slate-600 mt-2">
+                        Step status: {validationStep.status}
+                      </p>
+                    )}
+
+                    {latestValidation?.rulesChecked && (
+                      <div className="mt-3">
+                        <p className="text-xs font-semibold text-slate-500">
+                          Rules Checked
+                        </p>
+
+                        <pre className="text-xs mt-1 whitespace-pre-wrap break-words">
+                          {formatPayload(
+                            latestValidation.rulesChecked
+                          )}
+                        </pre>
+                      </div>
+                    )}
+
+                      {latestValidation?.errors &&
+                        latestValidation.errors !== "[]" && (
+                          <div className="mt-3">
+                            <p className="text-xs font-semibold text-red-600">
+                              Validation Errors
                             </p>
+
+                            <pre className="text-xs mt-1 text-red-700 whitespace-pre-wrap break-words">
+                              {formatPayload(
+                                latestValidation.errors
+                              )}
+                            </pre>
+                          </div>
+                        )}
+
+
+                  </div>
+
+                  {/* Approval Decisions */}
+                  {aiWorkflow.approvalDecisions.length > 0 && (
+                    <div className="border border-slate-200 rounded-xl p-5">
+                      <h3 className="font-bold text-slate-900">
+                        Approval Decision
+                      </h3>
+
+                      <div className="space-y-3 mt-3">
+                        {aiWorkflow.approvalDecisions.map(
+                          (decision) => (
+                            <div
+                              key={decision.decisionId}
+                              className="bg-slate-50 rounded-lg p-4"
+                            >
+                              <p className="font-semibold text-slate-800">
+                                {decision.decision}
+                              </p>
+
+                              {decision.comments && (
+                                <p className="text-sm text-slate-600 mt-1">
+                                  {decision.comments}
+                                </p>
+                              )}
+
+                              <p className="text-xs text-slate-400 mt-2">
+                                {new Date(
+                                  decision.decidedAt
+                                ).toLocaleString()}
+                              </p>
+                            </div>
                           )
                         )}
                       </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Execution Summary */}
+                  {aiWorkflow.executionSummary && (
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-5">
+                      <p className="text-xs uppercase font-semibold text-green-600">
+                        Execution Summary
+                      </p>
+
+                      <p className="font-bold text-green-800 mt-1">
+                        {aiWorkflow.executionSummary.finalOutcome}
+                      </p>
+
+                      <p className="text-xs text-green-600 mt-2">
+                        {new Date(
+                          aiWorkflow.executionSummary.createdAt
+                        ).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
-                {/* Validation */}
-
-                <div
-                  className={`rounded-xl border p-5 ${
-                    aiWorkflow.validationPassed
-                      ? "bg-green-50 border-green-200"
-                      : "bg-red-50 border-red-200"
-                  }`}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                      <p className="text-xs uppercase font-semibold text-slate-500">
-                        Coordinator
-                        Validation
-                      </p>
-
-                      <p
-                        className={`font-bold text-lg mt-1 ${
-                          aiWorkflow.validationPassed
-                            ? "text-green-700"
-                            : "text-red-700"
-                        }`}
-                      >
-                        {aiWorkflow.validationPassed
-                          ? "✓ Validation Passed"
-                          : "✕ Validation Failed"}
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-slate-700">
-                        3 / 3 Agents
-                        Completed
-                      </p>
-
-                      <p className="text-xs text-slate-500">
-                        Outputs validated
-                        by coordinator
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Final Action */}
-
-                <div className="border border-slate-200 rounded-xl p-5">
-                  <p className="text-xs uppercase tracking-wide font-semibold text-slate-400">
-                    Final Action Requiring
-                    Admin Approval
-                  </p>
-
-                  <h3 className="font-bold text-slate-900 text-lg mt-1">
-                    Create Lawyer
-                    Appointment
-                  </h3>
-
-                  <div className="grid md:grid-cols-2 gap-5 mt-5">
-                    <div className="bg-slate-50 rounded-lg p-4">
-                      <p className="text-xs uppercase text-slate-400">
-                        Selected Lawyer
-                      </p>
-
-                      <p className="font-bold text-slate-900 mt-1">
-                        {
-                          aiWorkflow.lawyer
-                            .name
-                        }
-                      </p>
-
-                      <p className="text-sm text-slate-500">
-                        {
-                          aiWorkflow.lawyer
-                            .practiceArea
-                        }
-                      </p>
-                    </div>
-
-                    <div className="bg-slate-50 rounded-lg p-4">
-                      <p className="text-xs uppercase text-slate-400">
-                        Selected
-                        Appointment
-                      </p>
-
-                      <p className="font-bold text-slate-900 mt-1">
-                        {
-                          aiWorkflow.slot
-                            .date
-                        }
-                      </p>
-
-                      <p className="text-sm text-slate-500">
-                        {
-                          aiWorkflow.slot
-                            .time
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Rejected */}
-
-                {aiRejected && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-5">
-                    <p className="font-bold text-red-800">
-                      Action Rejected
-                    </p>
-
-                    <p className="text-sm text-red-700 mt-1">
-                      Administrator
-                      rejected the proposed
-                      appointment action.
-                    </p>
-                  </div>
-                )}
-
-                {/* Completed */}
-
-                {aiWorkflow.status ===
-                  "Completed" && (
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-5">
-                    <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold">
-                        ✓
-                      </div>
-
-                      <div>
-                        <p className="font-bold text-green-800 text-lg">
-                          Workflow
-                          Completed
-                        </p>
-
-                        <p className="text-green-700 text-sm mt-1">
-                          Administrator
-                          approved the
-                          proposed final
-                          action.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer */}
-
-              <div className="p-6 border-t border-slate-200 bg-slate-50">
-                {aiWorkflow.status ===
-                  "AwaitingApproval" &&
-                !aiRejected ? (
+                {/* Footer */}
+                <div className="p-6 border-t border-slate-200 bg-slate-50">
+                {aiWorkflow.status === "AwaitingApproval" ? (
                   <div className="flex flex-col sm:flex-row gap-3">
+
                     <button
-                      onClick={
-                        approveAiWorkflow
-                      }
+                      onClick={approveAiWorkflow}
                       disabled={
                         approvingAi ||
-                        !aiWorkflow.validationPassed
+                        !validationPassed
                       }
-                      className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors"
+                      className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl"
                     >
                       {approvingAi
                         ? "Approving..."
-                        : "Approve Appointment"}
+                        : "Approve"}
                     </button>
 
                     <button
-                      onClick={
-                        rejectAiWorkflow
-                      }
-                      disabled={
-                        approvingAi
-                      }
-                      className="flex-1 border border-red-200 text-red-700 bg-white hover:bg-red-50 font-semibold py-3 rounded-xl transition-colors"
+                      onClick={rejectAiWorkflow}
+                      disabled={approvingAi}
+                      className="flex-1 border border-red-200 text-red-700 bg-white hover:bg-red-50 font-semibold py-3 rounded-xl"
                     >
                       Reject
                     </button>
 
                     <button
-                      onClick={
-                        closeAiWorkflow
-                      }
-                      disabled={
-                        approvingAi
-                      }
-                      className="px-6 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3 rounded-xl"
+                      onClick={reviseAiWorkflow}
+                      disabled={approvingAi}
+                      className="flex-1 border border-amber-200 text-amber-700 bg-white hover:bg-amber-50 font-semibold py-3 rounded-xl"
+                    >
+                      Request Revision
+                    </button>
+
+                    <button
+                      onClick={closeAiWorkflow}
+                      disabled={approvingAi}
+                      className="px-6 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3 rounded-xl disabled:opacity-50"
                     >
                       Close
                     </button>
                   </div>
                 ) : (
                   <button
-                    onClick={
-                      closeAiWorkflow
-                    }
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-xl transition-colors"
+                    onClick={closeAiWorkflow}
+                    className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3 rounded-xl"
                   >
                     Close
                   </button>
                 )}
               </div>
-            </div>
-          </div>
-        )}
+
+              </>
+            )}
+        </div>
+      </div>
+    )}
 
       {/* ─────────────────────────────────────────────── */}
       {/* Status Change Modal */}

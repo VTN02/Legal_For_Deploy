@@ -8,6 +8,7 @@ import '../../services/appointment_service.dart';
 import '../../services/documentation_service.dart';
 import '../../widgets/status_badge.dart';
 import '../appointments/lawyers_screen.dart';
+import '../appointments/appointment_detail_screen.dart';
 import '../auth/login_screen.dart';
 import '../auth/register_screen.dart';
 import '../document_and_clerk/requests/request_detail_screen.dart';
@@ -594,13 +595,29 @@ class _MyRequestsScreenState extends State<MyRequestsScreen> {
   }
 
   Widget _buildLawyerAppointmentCard(Appointment appt) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.withValues(alpha: 0.15)),
+  return Card(
+    margin: const EdgeInsets.only(bottom: 12),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: BorderSide(
+        color: Colors.grey.withValues(alpha: 0.15),
       ),
-      elevation: 1,
+    ),
+    elevation: 1,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AppointmentDetailScreen(
+              appointment: appt,
+            ),
+          ),
+        );
+
+        _fetchAllRequests();
+      },
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -610,19 +627,31 @@ class _MyRequestsScreenState extends State<MyRequestsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2563EB).withValues(alpha: 0.12),
+                    color: const Color(0xFF2563EB)
+                        .withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.balance, size: 12, color: Color(0xFF2563EB)),
+                      Icon(
+                        Icons.balance,
+                        size: 12,
+                        color: Color(0xFF2563EB),
+                      ),
                       SizedBox(width: 4),
                       Text(
                         'LAWYER CONSULTATION',
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF2563EB)),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2563EB),
+                        ),
                       ),
                     ],
                   ),
@@ -630,57 +659,97 @@ class _MyRequestsScreenState extends State<MyRequestsScreen> {
                 _buildAppointmentStatusBadge(appt.status),
               ],
             ),
+
             const SizedBox(height: 10),
+
             Text(
               'Advocate: ${appt.lawyerName}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.primaryNavy),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.primaryNavy,
+              ),
             ),
+
             if (appt.legalServiceCategory != null) ...[
               const SizedBox(height: 3),
               Text(
                 appt.legalServiceCategory!,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF475569), fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF475569),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ],
+
             const SizedBox(height: 8),
+
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(
+                  color: const Color(0xFFE2E8F0),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.event, size: 16, color: AppTheme.primaryNavy),
+                  const Icon(
+                    Icons.event,
+                    size: 16,
+                    color: AppTheme.primaryNavy,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     '${appt.date} • ${appt.startTime} – ${appt.endTime}',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primaryNavy),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryNavy,
+                    ),
                   ),
                 ],
               ),
             ),
+
             if (appt.canCancel) ...[
               const SizedBox(height: 10),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFFDC2626),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    foregroundColor:
+                        const Color(0xFFDC2626),
+                    padding:
+                        const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                   ),
-                  icon: const Icon(Icons.cancel_outlined, size: 14),
-                  label: const Text('Cancel Booking', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                  onPressed: () => _cancelBooking(appt),
+                  icon: const Icon(
+                    Icons.cancel_outlined,
+                    size: 14,
+                  ),
+                  label: const Text(
+                    'Cancel Booking',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onPressed: () =>
+                      _cancelBooking(appt),
                 ),
               ),
             ],
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildAppointmentStatusBadge(String status) {
     Color bg;

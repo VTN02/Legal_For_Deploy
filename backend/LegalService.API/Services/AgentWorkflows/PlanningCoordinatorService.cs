@@ -8,6 +8,7 @@ using LegalService.API.Services.Lawyers;
 using LegalService.API.Services.Scheduling;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace LegalService.API.Services.AgentWorkflows;
 
 /// <summary>
@@ -130,7 +131,28 @@ public async Task<AgentWorkflow> StartWorkflowAsync(
 
     return workflow;
 }
+private async Task<DocumentationRequest?> ResolveDocumentationRequestAsync(
+    AgentWorkflow workflow,
+    CancellationToken cancellationToken)
+{
+    if (workflow.ServiceRequest == null)
+    {
+        return null;
+    }
 
+    var customerId = workflow.ServiceRequest.CustomerId;
+
+    return await _context.DocumentationRequests
+        .Include(x => x.DocumentationService)
+        .Include(x => x.DocumentFiles)
+        .Where(x => x.CustomerId == customerId)
+        .Where(x =>
+            x.Status != "COMPLETED" &&
+            x.Status != "CANCELLED" &&
+            x.Status != "REJECTED")
+        .OrderByDescending(x => x.CreatedAt)
+        .FirstOrDefaultAsync(cancellationToken);
+}
 public async Task<AgentWorkflow> StartAndExecuteAsync(
     Guid serviceRequestId,
     CancellationToken cancellationToken = default)
@@ -549,8 +571,19 @@ public async Task<AgentWorkflow> StartAndExecuteAsync(
                 "This workflow does not require documentation analysis.");
 
         // Idempotent guard.
+        // Idempotent guard with stale-Running recovery.
+        var isStaleRunning =
+            string.Equals(
+                documentationStep.Status,
+                "Running",
+                StringComparison.OrdinalIgnoreCase)
+            &&
+            (string.IsNullOrWhiteSpace(documentationStep.OutputPayload) ||
+            documentationStep.OutputPayload == "{}");
+
         if (documentationStep.Status != "Pending" &&
-            documentationStep.Status != "Failed")
+            documentationStep.Status != "Failed" &&
+            !isStaleRunning)
         {
             return workflow;
         }
@@ -582,12 +615,14 @@ public async Task<AgentWorkflow> StartAndExecuteAsync(
 
             var customerId =
                 workflow.ServiceRequest.CustomerId.ToString();
+            var documentationRequest =
+                await ResolveDocumentationRequestAsync(workflow,cancellationToken);
 
             // Real call to Member 3's AI endpoint — do not replace.
             var analysisResult =
                 await _agentIntegrationService
                     .AnalyzeDocumentationRequestAsync(
-                        requestId: 0,       // no persisted DocumentationRequest
+                        requestId: documentationRequest?.RequestId ?? 0,
                         customerId: customerId,
                         objective: objective);
 
@@ -600,11 +635,25 @@ public async Task<AgentWorkflow> StartAndExecuteAsync(
             // analysis = the actual returned AgentAnalysisResponse object.
             var outputEnvelope = new
             {
-                source                = "ServiceRequestObjective",
-                documentationRequestId = (int?)null,
+                source = documentationRequest != null
+                    ? "DocumentationRequest"
+                    : "ServiceRequestObjective",
+
+                documentationRequestId =
+                    documentationRequest?.RequestId,
+
+                documentationServiceId =
+                    documentationRequest?.ServiceId,
+
+                documentationStatus =
+                    documentationRequest?.Status,
+
+                uploadedDocumentCount =
+                    documentationRequest?.DocumentFiles?.Count ?? 0,
+
                 objective,
                 customerId,
-                analysis              = analysisResult
+                analysis = analysisResult
             };
 
             documentationStep.OutputPayload =
@@ -625,6 +674,10 @@ public async Task<AgentWorkflow> StartAndExecuteAsync(
                 {
                     workflowId,
                     customerId,
+                    documentationRequestId =
+                        documentationRequest?.RequestId,
+                    documentationServiceId =
+                        documentationRequest?.ServiceId,
                     objective,
                     userId
                 }),
@@ -838,6 +891,82 @@ public async Task<AgentWorkflow> StartAndExecuteAsync(
                     $"DocumentationClerkAgent AI returned '{aiStatus}'. " +
                     "The documentation analysis must succeed before approval.");
             }
+
+            // --------------------------------------------------------------
+            // Confirm Member 3 analysis is linked to a real DocumentationRequest.
+            // --------------------------------------------------------------
+
+            rulesChecked.Add("documentation_request_linked");
+
+            int? documentationRequestId = null;
+
+            if (docDoc.RootElement.TryGetProperty(
+                    "documentationRequestId",
+                    out var documentationRequestIdElement) &&
+                documentationRequestIdElement.ValueKind == JsonValueKind.Number)
+            {
+                documentationRequestId =
+                    documentationRequestIdElement.GetInt32();
+            }
+
+            if (documentationRequestId == null ||
+                documentationRequestId <= 0)
+            {
+                errors.Add(
+                    "Documentation workflow is not linked to a real DocumentationRequest.");
+            }
+
+
+            // --------------------------------------------------------------
+            // Respect Member 3's document-completeness decision.
+            // Coordinator does NOT inspect/OCR documents itself.
+            // --------------------------------------------------------------
+
+            rulesChecked.Add("documentation_completeness_checked");
+
+            bool? documentsComplete = null;
+
+            try
+            {
+                if (docDoc.RootElement.TryGetProperty(
+                        "analysis",
+                        out var documentationAnalysisElement) &&
+                    documentationAnalysisElement.TryGetProperty(
+                        "recommendation",
+                        out var recommendationElement) &&
+                    recommendationElement.TryGetProperty(
+                        "documents_complete",
+                        out var documentsCompleteElement))
+                {
+                    if (documentsCompleteElement.ValueKind ==
+                        JsonValueKind.True)
+                    {
+                        documentsComplete = true;
+                    }
+                    else if (documentsCompleteElement.ValueKind ==
+                            JsonValueKind.False)
+                    {
+                        documentsComplete = false;
+                    }
+                }
+            }
+            catch
+            {
+                documentsComplete = null;
+            }
+
+            if (documentsComplete == false)
+            {
+                errors.Add(
+                    "Required documentation is incomplete. " +
+                    "Coordinator cannot request final approval yet.");
+            }
+
+            if (documentsComplete == null)
+            {
+                errors.Add(
+                    "Documentation completeness could not be confirmed.");
+            }
         }
 
         // ------------------------------------------------------------------
@@ -935,7 +1064,19 @@ public async Task<AgentWorkflow> StartAndExecuteAsync(
         
         return workflow;
     }
-
+    public async Task<List<AgentWorkflow>> GetWorkflowsAsync(
+            CancellationToken cancellationToken = default)
+        {
+            return await _context.AgentWorkflows
+                .AsNoTracking()
+                .Include(x => x.ServiceRequest)
+                .Include(x => x.AgentSteps)
+                .Include(x => x.ApprovalDecisions)
+                .Include(x => x.ValidationResults)
+                .Include(x => x.ExecutionSummary)
+                .OrderByDescending(x => x.CreatedAt)
+                .ToListAsync(cancellationToken);
+        }
     // =================================================================
     // 6. GET WORKFLOW
     // =================================================================
@@ -1337,7 +1478,957 @@ return await _context.AgentWorkflows
         cancellationToken);
 }
     
+    // =================================================================
+// 8. APPROVE DOCUMENTATION / HUMAN APPROVAL GATE
+// =================================================================
 
+public async Task<AgentWorkflow> ApproveDocumentationAsync(
+    Guid workflowId,
+    int approverUserId,
+    string? comments = null,
+    CancellationToken cancellationToken = default)
+{
+    // -------------------------------------------------------------
+    // 8-1. Load workflow.
+    // -------------------------------------------------------------
+
+    var workflow = await _context.AgentWorkflows
+        .Include(x => x.ServiceRequest)
+        .Include(x => x.AgentSteps)
+        .SingleOrDefaultAsync(
+            x => x.WorkflowId == workflowId,
+            cancellationToken)
+        ?? throw new KeyNotFoundException(
+            "Agent workflow not found.");
+
+    // -------------------------------------------------------------
+    // 8-2. Idempotent: already completed.
+    // -------------------------------------------------------------
+
+    if (workflow.Status == "Completed")
+    {
+        _context.ChangeTracker.Clear();
+
+        return await _context.AgentWorkflows
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(x => x.ServiceRequest)
+            .Include(x => x.AgentSteps)
+                .ThenInclude(x => x.ToolExecutions)
+            .Include(x => x.ValidationResults)
+            .Include(x => x.ApprovalDecisions)
+            .Include(x => x.ExecutionSummary)
+            .SingleAsync(
+                x => x.WorkflowId == workflowId,
+                cancellationToken);
+    }
+
+    // -------------------------------------------------------------
+    // 8-3. Workflow must have passed Coordinator validation.
+    // -------------------------------------------------------------
+
+    if (workflow.Status != "AwaitingApproval")
+    {
+        throw new InvalidOperationException(
+            $"Workflow must be AwaitingApproval before documentation approval. " +
+            $"Current status: {workflow.Status}.");
+    }
+
+    if (workflow.ServiceRequest == null)
+    {
+        throw new InvalidOperationException(
+            "Service request is missing from the workflow.");
+    }
+
+    // -------------------------------------------------------------
+    // 8-4. This approval path is specifically for documentation.
+    // -------------------------------------------------------------
+
+    var documentationStep = workflow.AgentSteps
+        .FirstOrDefault(x =>
+            x.AgentName == "DocumentationClerkAgent")
+        ?? throw new InvalidOperationException(
+            "Documentation step was not found.");
+
+    if (documentationStep.Status != "Completed")
+    {
+        throw new InvalidOperationException(
+            "Documentation analysis must be completed before approval.");
+    }
+
+    // Prevent this endpoint from accidentally completing a workflow
+    // that still requires lawyer booking.
+    var lawyerStep = workflow.AgentSteps
+        .FirstOrDefault(x =>
+            x.AgentName == "LawyerRecommendationAgent");
+
+    if (lawyerStep != null)
+    {
+        throw new InvalidOperationException(
+            "This workflow also contains a lawyer recommendation step. " +
+            "Use the lawyer approval flow for the high-impact lawyer action.");
+    }
+
+    // -------------------------------------------------------------
+    // 8-5. Read and verify DocumentationClerkAgent output.
+    // -------------------------------------------------------------
+
+    int documentationRequestId;
+    string? documentationAiStatus = null;
+    string? member3WorkflowId = null;
+    bool? documentsComplete = null;
+    int? recommendedClerkId = null;
+
+    try
+    {
+        using var doc =
+            JsonDocument.Parse(documentationStep.OutputPayload);
+
+        if (!doc.RootElement.TryGetProperty(
+                "documentationRequestId",
+                out var requestIdElement) ||
+            requestIdElement.ValueKind != JsonValueKind.Number)
+        {
+            throw new InvalidOperationException(
+                "DocumentationRequestId is missing from documentation output.");
+        }
+
+        documentationRequestId =
+            requestIdElement.GetInt32();
+
+        if (documentationRequestId <= 0)
+        {
+            throw new InvalidOperationException(
+                "DocumentationRequestId is invalid.");
+        }
+
+        if (doc.RootElement.TryGetProperty(
+                "analysis",
+                out var analysisElement))
+        {
+            if (analysisElement.TryGetProperty(
+                    "status",
+                    out var statusElement))
+            {
+                documentationAiStatus =
+                    statusElement.GetString();
+            }
+
+            if (analysisElement.TryGetProperty(
+                    "workflowId",
+                    out var workflowIdElement))
+            {
+                member3WorkflowId =
+                    workflowIdElement.GetString();
+            }
+            else if (analysisElement.TryGetProperty(
+                         "workflow_id",
+                         out var workflowIdSnakeElement))
+            {
+                member3WorkflowId =
+                    workflowIdSnakeElement.GetString();
+            }
+
+            if (analysisElement.TryGetProperty(
+                    "recommendation",
+                    out var recommendationElement))
+            {
+                if (recommendationElement.TryGetProperty(
+                        "documents_complete",
+                        out var completeElement))
+                {
+                    if (completeElement.ValueKind ==
+                        JsonValueKind.True)
+                    {
+                        documentsComplete = true;
+                    }
+                    else if (completeElement.ValueKind ==
+                             JsonValueKind.False)
+                    {
+                        documentsComplete = false;
+                    }
+                }
+
+                if (recommendationElement.TryGetProperty(
+                        "recommended_clerk",
+                        out var clerkElement) &&
+                    clerkElement.ValueKind != JsonValueKind.Null &&
+                    clerkElement.TryGetProperty(
+                        "clerk_id",
+                        out var clerkIdElement) &&
+                    clerkIdElement.ValueKind ==
+                        JsonValueKind.Number)
+                {
+                    recommendedClerkId =
+                        clerkIdElement.GetInt32();
+                }
+            }
+        }
+    }
+    catch (JsonException ex)
+    {
+        throw new InvalidOperationException(
+            "Could not read the documentation agent result.",
+            ex);
+    }
+
+    ///
+    /// 
+    /// 
+    /// 
+    
+
+
+    if (documentsComplete != true)
+    {
+        throw new InvalidOperationException(
+            "Documentation cannot be approved because " +
+            "required documents are not confirmed as complete.");
+    }
+    if (string.IsNullOrWhiteSpace(member3WorkflowId))
+    {
+        throw new InvalidOperationException(
+            "Member 3 documentation workflow ID is missing.");
+    }
+
+    var member3Approval =
+        await _agentIntegrationService.SubmitApprovalDecisionAsync(
+            member3WorkflowId,
+            "APPROVE",
+            approverUserId,
+            comments ?? "Approved by administrator");
+
+    if (!string.Equals(
+            member3Approval.Status,
+            "COMPLETED",
+            StringComparison.OrdinalIgnoreCase))
+    {
+        var errors = member3Approval.Errors != null &&
+                    member3Approval.Errors.Count > 0
+            ? string.Join("; ", member3Approval.Errors)
+            : "Unknown Member 3 approval error.";
+
+        throw new InvalidOperationException(
+            $"Member 3 documentation approval failed. " +
+            $"Status: {member3Approval.Status}. Errors: {errors}");
+    }
+
+    if (documentationAiStatus is
+        "AI_SERVICE_ERROR" or
+        "AI_SERVICE_UNAVAILABLE")
+    {
+        throw new InvalidOperationException(
+            $"Documentation agent returned '{documentationAiStatus}'.");
+    }
+
+    // -------------------------------------------------------------
+    // 8-6. Insert ApprovalDecision idempotently.
+    // -------------------------------------------------------------
+
+    var approvalExists =
+        await _context.ApprovalDecisions
+            .AsNoTracking()
+            .AnyAsync(
+                x =>
+                    x.WorkflowId == workflow.WorkflowId &&
+                    x.Decision == "Approved",
+                cancellationToken);
+
+    if (!approvalExists)
+    {
+        _context.ApprovalDecisions.Add(
+            new ApprovalDecision
+            {
+                DecisionId = Guid.NewGuid(),
+                WorkflowId = workflow.WorkflowId,
+                ApproverId =
+                    EncodeUserIdAsGuid(approverUserId),
+                Decision = "Approved",
+                Comments =
+                    comments?.Trim() ?? string.Empty,
+                DecidedAt = DateTime.UtcNow
+            });
+    }
+
+    // -------------------------------------------------------------
+    // 8-7. Record ToolExecution idempotently.
+    // -------------------------------------------------------------
+
+    var toolExecutionExists =
+        await _context.ToolExecutions
+            .AsNoTracking()
+            .AnyAsync(
+                x =>
+                    x.StepId == documentationStep.StepId &&
+                    x.ToolName == "documentation.approve" &&
+                    x.Success,
+                cancellationToken);
+
+    if (!toolExecutionExists)
+    {
+        _context.ToolExecutions.Add(
+            new ToolExecution
+            {
+                ToolId = Guid.NewGuid(),
+                StepId = documentationStep.StepId,
+                ToolName = "documentation.approve",
+
+                InputData = JsonSerializer.Serialize(new
+                {
+                    workflowId =
+                        workflow.WorkflowId,
+                    documentationRequestId,
+                    member3WorkflowId,
+                    approverUserId,
+                    comments
+                }),
+
+                OutputData = JsonSerializer.Serialize(new
+                {
+                    status = "Approved",
+                    documentationRequestId,
+                    member3WorkflowId,
+                    recommendedClerkId,
+                    documentsComplete = true
+                }),
+
+                Success = true,
+                ExecutedAt = DateTime.UtcNow
+            });
+    }
+
+    // -------------------------------------------------------------
+    // 8-8. Complete Coordinator human-approval step.
+    // -------------------------------------------------------------
+
+    var approvalStep = workflow.AgentSteps
+        .FirstOrDefault(x =>
+            x.AgentName == "PlanningCoordinatorAgent" &&
+            x.StepName == "Request human approval");
+
+    if (approvalStep != null)
+    {
+        approvalStep.Status = "Completed";
+
+        approvalStep.OutputPayload =
+            JsonSerializer.Serialize(new
+            {
+                decision = "Approved",
+                approverUserId,
+                documentationRequestId,
+                member3WorkflowId,
+                recommendedClerkId,
+                decidedAt = DateTime.UtcNow
+            });
+    }
+
+    // -------------------------------------------------------------
+    // 8-9. Create / update ExecutionSummary.
+    // -------------------------------------------------------------
+
+    var outcome = JsonSerializer.Serialize(new
+    {
+        action = "Documentation workflow approved",
+        documentationRequestId,
+        member3WorkflowId,
+        recommendedClerkId,
+        customerId =
+            workflow.ServiceRequest.CustomerId,
+        status = "Completed"
+    });
+
+    var existingSummary =
+        await _context.ExecutionSummaries
+            .FirstOrDefaultAsync(
+                x =>
+                    x.WorkflowId ==
+                    workflow.WorkflowId,
+                cancellationToken);
+
+    if (existingSummary == null)
+    {
+        _context.ExecutionSummaries.Add(
+            new ExecutionSummary
+            {
+                SummaryId = Guid.NewGuid(),
+                WorkflowId =
+                    workflow.WorkflowId,
+                FinalOutcome = outcome,
+                CreatedAt = DateTime.UtcNow
+            });
+    }
+    else
+    {
+        existingSummary.FinalOutcome =
+            outcome;
+    }
+
+    // -------------------------------------------------------------
+    // 8-10. Audit log.
+    // -------------------------------------------------------------
+
+    _context.AuditLogs.Add(
+        new AuditLog
+        {
+            AuditLogId = Guid.NewGuid(),
+            UserId = approverUserId,
+
+            Action =
+                "AgentWorkflow.DocumentationApproval",
+
+            Details = JsonSerializer.Serialize(new
+            {
+                workflowId =
+                    workflow.WorkflowId,
+
+                serviceRequestId =
+                    workflow.ServiceRequestId,
+
+                documentationRequestId,
+                member3WorkflowId,
+
+                decision = "Approved",
+
+                recommendedClerkId,
+
+                documentationAiStatus
+            }),
+
+            Timestamp = DateTime.UtcNow
+        });
+
+    // -------------------------------------------------------------
+    // 8-11. Complete parent ServiceRequest.
+    // -------------------------------------------------------------
+
+    workflow.ServiceRequest.Status =
+        ServiceRequestStatus.Completed;
+
+    workflow.ServiceRequest.UpdatedAt =
+        DateTime.UtcNow;
+
+    // -------------------------------------------------------------
+    // 8-12. Complete Coordinator workflow.
+    // -------------------------------------------------------------
+
+    workflow.Status = "Completed";
+    workflow.UpdatedAt = DateTime.UtcNow;
+
+    await _context.SaveChangesAsync(
+        cancellationToken);
+
+    // -------------------------------------------------------------
+    // 8-13. Return fully hydrated workflow.
+    // -------------------------------------------------------------
+
+    _context.ChangeTracker.Clear();
+
+    return await _context.AgentWorkflows
+        .AsNoTracking()
+        .AsSplitQuery()
+        .Include(x => x.ServiceRequest)
+        .Include(x => x.AgentSteps)
+            .ThenInclude(x => x.ToolExecutions)
+        .Include(x => x.ValidationResults)
+        .Include(x => x.ApprovalDecisions)
+        .Include(x => x.ExecutionSummary)
+        .SingleAsync(
+            x => x.WorkflowId == workflowId,
+            cancellationToken);
+        }
+        public async Task<AgentWorkflow> RejectWorkflowAsync(
+            Guid workflowId,
+            int approverUserId,
+            string? comments = null,
+            CancellationToken cancellationToken = default)
+        {
+            var workflow = await _context.AgentWorkflows
+                .Include(x => x.ServiceRequest)
+                .Include(x => x.AgentSteps)
+                .Include(x => x.ApprovalDecisions)
+                .FirstOrDefaultAsync(
+                    x => x.WorkflowId == workflowId,
+                    cancellationToken);
+
+            if (workflow == null)
+            {
+                throw new KeyNotFoundException(
+                    $"Workflow {workflowId} was not found.");
+            }
+
+            // Idempotent handling
+            if (string.Equals(
+                    workflow.Status,
+                    "Rejected",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return workflow;
+            }
+
+            if (!string.Equals(
+                    workflow.Status,
+                    "AwaitingApproval",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Workflow must be AwaitingApproval before rejection. " +
+                    $"Current status: {workflow.Status}.");
+            }
+
+            if (workflow.ServiceRequest == null)
+            {
+                throw new InvalidOperationException(
+                    "Workflow ServiceRequest is missing.");
+            }
+
+            var now = DateTime.UtcNow;
+
+            // Save the admin rejection decision
+            var rejectionDecision = new ApprovalDecision
+            {
+                DecisionId = Guid.NewGuid(),
+                WorkflowId = workflow.WorkflowId,
+                ApproverId = EncodeUserIdAsGuid(approverUserId),
+                Decision = "Rejected",
+                Comments = comments ?? "Rejected by administrator",
+                DecidedAt = now
+            };
+
+            _context.ApprovalDecisions.Add(rejectionDecision);
+
+            // Complete the human approval step
+            var humanApprovalStep = workflow.AgentSteps
+                .FirstOrDefault(x =>
+                    x.AgentName == "PlanningCoordinatorAgent" &&
+                    x.StepName == "Request human approval");
+
+            if (humanApprovalStep != null)
+            {
+                humanApprovalStep.Status = "Completed";
+
+                humanApprovalStep.OutputPayload =
+                    JsonSerializer.Serialize(new
+                    {
+                        decision = "Rejected",
+                        approverUserId,
+                        comments =
+                            comments ?? "Rejected by administrator",
+                        decidedAt = now
+                    });
+            }
+
+            // ServiceRequest final state
+            workflow.ServiceRequest.Status =
+                ServiceRequestStatus.Rejected;
+
+            workflow.ServiceRequest.UpdatedAt = now;
+
+            // Coordinator workflow final state
+            workflow.Status = "Rejected";
+            workflow.UpdatedAt = now;
+
+
+
+
+
+
+           var finalOutcome = JsonSerializer.Serialize(new
+                {
+                    action = "Workflow rejected",
+                    customerId = workflow.ServiceRequest.CustomerId,
+                    approverUserId,
+                    comments = comments ?? "Rejected by administrator",
+                    status = "Rejected"
+                });
+
+                var existingSummary =
+                    await _context.ExecutionSummaries
+                        .FirstOrDefaultAsync(
+                            x => x.WorkflowId == workflow.WorkflowId,
+                            cancellationToken);
+
+                if (existingSummary == null)
+                {
+                    existingSummary = new ExecutionSummary
+                    {
+                        SummaryId = Guid.NewGuid(),
+                        WorkflowId = workflow.WorkflowId,
+                        FinalOutcome = finalOutcome,
+                        CreatedAt = now
+                    };
+
+                    _context.ExecutionSummaries.Add(existingSummary);
+                }
+                else
+                {
+                    existingSummary.FinalOutcome = finalOutcome;
+                }
+
+
+
+
+
+
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return await _context.AgentWorkflows
+                .Include(x => x.ServiceRequest)
+                .Include(x => x.AgentSteps)
+                .Include(x => x.ApprovalDecisions)
+                .Include(x => x.ExecutionSummary)
+                .FirstAsync(
+                    x => x.WorkflowId == workflowId,
+                    cancellationToken);
+        }
+
+        public async Task<AgentWorkflow> RequestRevisionAsync(
+            Guid workflowId,
+            int approverUserId,
+            string? comments = null,
+            CancellationToken cancellationToken = default)
+        {
+            var workflow = await _context.AgentWorkflows
+                .Include(x => x.ServiceRequest)
+                .Include(x => x.AgentSteps)
+                .Include(x => x.ApprovalDecisions)
+                .FirstOrDefaultAsync(
+                    x => x.WorkflowId == workflowId,
+                    cancellationToken);
+
+            if (workflow == null)
+            {
+                throw new KeyNotFoundException(
+                    $"Workflow {workflowId} was not found.");
+            }
+
+            // Idempotent handling
+            if (workflow.ServiceRequest != null &&
+                workflow.ServiceRequest.Status ==
+                    ServiceRequestStatus.RevisionRequired)
+            {
+                return await _context.AgentWorkflows
+                    .Include(x => x.ServiceRequest)
+                    .Include(x => x.AgentSteps)
+                    .Include(x => x.ApprovalDecisions)
+                    .Include(x => x.ExecutionSummary)
+                    .FirstAsync(
+                        x => x.WorkflowId == workflowId,
+                        cancellationToken);
+            }
+
+            if (!string.Equals(
+                    workflow.Status,
+                    "AwaitingApproval",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Workflow must be AwaitingApproval before revision can be requested. " +
+                    $"Current status: {workflow.Status}.");
+            }
+
+            if (workflow.ServiceRequest == null)
+            {
+                throw new InvalidOperationException(
+                    "Workflow ServiceRequest is missing.");
+            }
+
+            var now = DateTime.UtcNow;
+
+            var revisionComments =
+                string.IsNullOrWhiteSpace(comments)
+                    ? "Revision requested by administrator"
+                    : comments;
+
+            // Save admin revision decision
+            var revisionDecision = new ApprovalDecision
+            {
+                DecisionId = Guid.NewGuid(),
+                WorkflowId = workflow.WorkflowId,
+                ApproverId = EncodeUserIdAsGuid(approverUserId),
+                Decision = "RevisionRequired",
+                Comments = revisionComments,
+                DecidedAt = now
+            };
+
+            _context.ApprovalDecisions.Add(revisionDecision);
+
+            // Update human approval step
+            var humanApprovalStep = workflow.AgentSteps
+                .FirstOrDefault(x =>
+                    x.AgentName == "PlanningCoordinatorAgent" &&
+                    x.StepName == "Request human approval");
+
+            if (humanApprovalStep != null)
+            {
+                humanApprovalStep.Status = "Completed";
+
+                humanApprovalStep.OutputPayload =
+                    JsonSerializer.Serialize(new
+                    {
+                        decision = "RevisionRequired",
+                        approverUserId,
+                        comments = revisionComments,
+                        decidedAt = now
+                    });
+            }
+
+            // Service request now requires revision
+            workflow.ServiceRequest.Status =
+                ServiceRequestStatus.RevisionRequired;
+
+            workflow.ServiceRequest.UpdatedAt = now;
+
+            // Coordinator should no longer be AwaitingApproval
+            workflow.Status = "NeedsHumanReview";
+            workflow.UpdatedAt = now;
+
+            // Safe ExecutionSummary handling
+            var finalOutcome = JsonSerializer.Serialize(new
+            {
+                action = "Workflow revision requested",
+                customerId = workflow.ServiceRequest.CustomerId,
+                approverUserId,
+                comments = revisionComments,
+                serviceRequestStatus = "RevisionRequired",
+                workflowStatus = "NeedsHumanReview"
+            });
+
+            var existingSummary =
+                await _context.ExecutionSummaries
+                    .FirstOrDefaultAsync(
+                        x => x.WorkflowId == workflow.WorkflowId,
+                        cancellationToken);
+
+            if (existingSummary == null)
+            {
+                existingSummary = new ExecutionSummary
+                {
+                    SummaryId = Guid.NewGuid(),
+                    WorkflowId = workflow.WorkflowId,
+                    FinalOutcome = finalOutcome,
+                    CreatedAt = now
+                };
+
+                _context.ExecutionSummaries.Add(existingSummary);
+            }
+            else
+            {
+                existingSummary.FinalOutcome = finalOutcome;
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            return await _context.AgentWorkflows
+                .Include(x => x.ServiceRequest)
+                .Include(x => x.AgentSteps)
+                .Include(x => x.ApprovalDecisions)
+                .Include(x => x.ExecutionSummary)
+                .FirstAsync(
+                    x => x.WorkflowId == workflowId,
+                    cancellationToken);
+        }
+
+
+        public async Task<AgentWorkflow> ApproveWorkflowAsync(
+            Guid workflowId,
+            int approverUserId,
+            Guid? lawyerId = null,
+            Guid? slotId = null,
+            DateOnly? bookingDate = null,
+            string? comments = null,
+            CancellationToken cancellationToken = default)
+        {
+            var workflow = await _context.AgentWorkflows
+                .Include(x => x.ServiceRequest)
+                .Include(x => x.AgentSteps)
+                .FirstOrDefaultAsync(
+                    x => x.WorkflowId == workflowId,
+                    cancellationToken);
+
+            if (workflow == null)
+            {
+                throw new KeyNotFoundException(
+                    $"Workflow {workflowId} was not found.");
+            }
+
+            if (string.Equals(
+                    workflow.Status,
+                    "Completed",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return await _context.AgentWorkflows
+                    .Include(x => x.ServiceRequest)
+                    .Include(x => x.AgentSteps)
+                    .Include(x => x.ApprovalDecisions)
+                    .Include(x => x.ExecutionSummary)
+                    .FirstAsync(
+                        x => x.WorkflowId == workflowId,
+                        cancellationToken);
+            }
+
+            if (!string.Equals(
+                    workflow.Status,
+                    "AwaitingApproval",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Workflow must be AwaitingApproval before approval. " +
+                    $"Current status: {workflow.Status}.");
+            }
+
+            var lawyerStep = workflow.AgentSteps
+                .FirstOrDefault(x =>
+                    x.AgentName == "LawyerRecommendationAgent");
+
+            var documentationStep = workflow.AgentSteps
+                .FirstOrDefault(x =>
+                    x.AgentName == "DocumentationClerkAgent");
+
+            // --------------------------------------------------
+            // MIXED / LAWYER WORKFLOW
+            // --------------------------------------------------
+            if (lawyerStep != null)
+            {
+                if (!lawyerId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "LawyerId is required for this workflow.");
+                }
+
+                if (!slotId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "SlotId is required for this workflow.");
+                }
+
+                if (!bookingDate.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "BookingDate is required for this workflow.");
+                }
+
+                // If documentation also exists, approve Member 3 first.
+                if (documentationStep != null)
+                {
+                    if (!string.Equals(
+                            documentationStep.Status,
+                            "Completed",
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidOperationException(
+                            "Documentation step must be completed before approval.");
+                    }
+
+                    using var doc =
+                        JsonDocument.Parse(
+                            documentationStep.OutputPayload);
+
+                    string? member3WorkflowId = null;
+                    bool documentsComplete = false;
+
+                    if (doc.RootElement.TryGetProperty(
+                            "analysis",
+                            out var analysis))
+                    {
+                        if (analysis.TryGetProperty(
+                                "workflowId",
+                                out var workflowIdElement))
+                        {
+                            member3WorkflowId =
+                                workflowIdElement.GetString();
+                        }
+                        else if (analysis.TryGetProperty(
+                                    "workflow_id",
+                                    out var workflowIdSnakeElement))
+                        {
+                            member3WorkflowId =
+                                workflowIdSnakeElement.GetString();
+                        }
+
+                        if (analysis.TryGetProperty(
+                                "recommendation",
+                                out var recommendation) &&
+                            recommendation.TryGetProperty(
+                                "documents_complete",
+                                out var completeElement))
+                        {
+                            documentsComplete =
+                                completeElement.ValueKind ==
+                                JsonValueKind.True;
+                        }
+                    }
+
+                    if (!documentsComplete)
+                    {
+                        throw new InvalidOperationException(
+                            "Documentation is not complete. " +
+                            "Mixed workflow cannot be approved.");
+                    }
+
+                    if (string.IsNullOrWhiteSpace(
+                            member3WorkflowId))
+                    {
+                        throw new InvalidOperationException(
+                            "Member 3 workflow ID is missing.");
+                    }
+
+                    var member3Approval =
+                        await _agentIntegrationService
+                            .SubmitApprovalDecisionAsync(
+                                member3WorkflowId,
+                                "APPROVE",
+                                approverUserId,
+                                comments ??
+                                "Approved by administrator");
+
+                    if (!string.Equals(
+                            member3Approval.Status,
+                            "COMPLETED",
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        var errors =
+                            member3Approval.Errors != null &&
+                            member3Approval.Errors.Count > 0
+                                ? string.Join(
+                                    "; ",
+                                    member3Approval.Errors)
+                                : "Unknown Member 3 approval error.";
+
+                        throw new InvalidOperationException(
+                            $"Member 3 approval failed. " +
+                            $"Status: {member3Approval.Status}. " +
+                            $"Errors: {errors}");
+                    }
+                }
+
+                // Existing lawyer approval completes the coordinator
+                // workflow and performs the high-impact booking action.
+                return await ApproveLawyerAsync(
+                    workflowId,
+                    lawyerId.Value,
+                    slotId.Value,
+                    bookingDate.Value,
+                    approverUserId,
+                    comments,
+                    cancellationToken);
+            }
+            // --------------------------------------------------
+            // DOCUMENTATION-ONLY WORKFLOW
+            // --------------------------------------------------
+            if (documentationStep != null)
+            {
+                return await ApproveDocumentationAsync(
+                    workflowId,
+                    approverUserId,
+                    comments,
+                    cancellationToken);
+            }
+
+            throw new InvalidOperationException(
+                "No supported specialist-agent result exists " +
+                "for coordinator approval.");
+        }
     // =================================================================
     // PRIVATE HELPERS
     // =================================================================
@@ -1541,10 +2632,12 @@ return await _context.AgentWorkflows
             "lawyer", "attorney", "legal advice",
             "legal help", "consultation");
 
-        var needsScheduling = ContainsAny(
-            text,
-            "appointment", "meeting", "meet",
-            "schedule", "consultation");
+        var needsScheduling =
+            needsLawyer ||
+            ContainsAny(
+                text,
+                "appointment", "meeting", "meet",
+                "schedule", "consultation");
 
         var needsDocumentation = ContainsAny(
             text,
