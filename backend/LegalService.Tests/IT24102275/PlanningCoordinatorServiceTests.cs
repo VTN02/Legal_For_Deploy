@@ -110,7 +110,7 @@ public class PlanningCoordinatorServiceTests
                 step.AgentName ==
                 "LawyerRecommendationAgent");
 
-        Assert.DoesNotContain(
+        Assert.Contains(
             workflow.AgentSteps,
             step =>
                 step.AgentName ==
