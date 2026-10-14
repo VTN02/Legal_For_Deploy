@@ -1,9 +1,10 @@
 import Navbar from "../components/common/Navbar";
 import HeroSection from "../components/common/HeroSection";
+import AboutSection from "../components/common/AboutSection";
+import OurValuesServicesSection from "../components/common/OurValuesServicesSection";
 import ServicesSection from "../components/common/ServicesSection";
 import HowItWorks from "../components/common/HowItWorks";
 import AISection from "../components/common/AISection";
-import AboutSection from "../components/common/AboutSection";
 import Footer from "../components/common/Footer";
 import Legalintelligencesection from "../components/common/Legalintelligencesection";
 
@@ -13,12 +14,12 @@ const LandingPage = () => {
       <Navbar />
       <main>
         <HeroSection />
+        <AboutSection />
+        <OurValuesServicesSection />
         <ServicesSection />
         <HowItWorks />
         <AISection />
         <Legalintelligencesection />
-        <AboutSection />
-        
       </main>
       <Footer />
     </div>
