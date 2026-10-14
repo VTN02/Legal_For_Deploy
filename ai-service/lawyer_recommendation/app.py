@@ -79,7 +79,7 @@ async def recommend(request: RecommendationRequest, x_internal_key: str = Header
             'requirement': request.requirement,
             'date': request.date.isoformat() if request.date else None,
             'limit': request.limit,
-        }), timeout=40)
+        }), timeout=90)
         return {k: result[k] for k in ('recommendations', 'warnings', 'trace', 'parsedRequirement', 'date')}
     except InvalidClassification:
         logger.warning('Recommendation failure stage=catalog_validation status=422 correlationId=%s', correlation)

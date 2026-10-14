@@ -1,6 +1,5 @@
 import React from "react";
-import { ArrowRight, Scale, Shield, Building2, Users, Home, Globe, Briefcase } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Shield, Building2, Users, Home, Globe, Briefcase } from "lucide-react";
 
 export const OurValuesServicesSection: React.FC = () => {
   const practiceAreasLeft = [

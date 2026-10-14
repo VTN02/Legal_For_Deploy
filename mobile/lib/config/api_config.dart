@@ -14,10 +14,10 @@ class ApiConfig {
       dotenv.env['AI_SERVICE_URL'] ?? 'http://localhost:8001';
 
   static String get lanBackendUrl =>
-    dotenv.env['BACKEND_URL'] ?? 'http://10.166.6.67:5000';
+    dotenv.env['BACKEND_URL'] ?? 'http://10.220.183.67:5000';
 
   static String get lanAiUrl =>
-    dotenv.env['AI_SERVICE_URL'] ?? 'http://10.166.6.67:8001';
+    dotenv.env['AI_SERVICE_URL'] ?? 'http://10.220.183.67:8001';
 
 
   static final ValueNotifier<String> backendUrl =
@@ -27,43 +27,27 @@ class ApiConfig {
       ValueNotifier<String>(defaultAiUrl);
 
 
-  static Future<void> initialize() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
+ static Future<void> initialize() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
 
-      final savedBackend = prefs.getString(_backendPrefKey);
-      final savedAi = prefs.getString(_aiPrefKey);
+    backendUrl.value = defaultBackendUrl;
+    aiServiceUrl.value = defaultAiUrl;
 
+    await prefs.setString(
+      _backendPrefKey,
+      defaultBackendUrl,
+    );
 
-      // Use saved custom value if available,
-      // otherwise use .env value
-
-      if (savedBackend != null && savedBackend.isNotEmpty) {
-        backendUrl.value = savedBackend;
-      } else {
-        backendUrl.value = defaultBackendUrl;
-        await prefs.setString(
-          _backendPrefKey,
-          defaultBackendUrl,
-        );
-      }
-
-
-      if (savedAi != null && savedAi.isNotEmpty) {
-        aiServiceUrl.value = savedAi;
-      } else {
-        aiServiceUrl.value = defaultAiUrl;
-        await prefs.setString(
-          _aiPrefKey,
-          defaultAiUrl,
-        );
-      }
-
-    } catch (_) {
-      backendUrl.value = defaultBackendUrl;
-      aiServiceUrl.value = defaultAiUrl;
-    }
+    await prefs.setString(
+      _aiPrefKey,
+      defaultAiUrl,
+    );
+  } catch (_) {
+    backendUrl.value = defaultBackendUrl;
+    aiServiceUrl.value = defaultAiUrl;
   }
+}
 
 
   static Future<void> setBackendUrl(String url) async {

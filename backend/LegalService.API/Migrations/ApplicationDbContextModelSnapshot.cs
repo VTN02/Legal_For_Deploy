@@ -473,7 +473,7 @@ namespace LegalService.API.Migrations
 
                     b.ToTable("DocumentationServices");
 
-                    b.HasData(
+               b.HasData(
                         new
                         {
                             ServiceId = 1,
@@ -492,15 +492,15 @@ namespace LegalService.API.Migrations
                             Name = "Affidavit & Notary Services",
                             RequiredDocuments = "[\"NIC\",\"Completed Affidavit Draft\",\"Witness Details\"]"
                         },
-                        new
-                        {
-                            ServiceId = 3,
-                            CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3880),
-                            Description = "Drafting General or Special Power of Attorney documents.",
-                            IsActive = true,
-                            Name = "Power of Attorney Drafting",
-                            RequiredDocuments = "[\"NIC of Grantor\",\"NIC of Grantee\",\"Scope of Authority Document\"]"
-                        });
+                    new
+                    {
+                        ServiceId = 3,
+                        CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3880),
+                        Description = "Drafting General or Special Power of Attorney documents.",
+                        IsActive = true,
+                        Name = "Power of Attorney Drafting",
+                        RequiredDocuments = "[\"NIC of Grantor\",\"NIC of Grantee\",\"Scope of Authority Document\"]"
+                    });
                 });
 
             modelBuilder.Entity("LegalService.API.Models.Entities.ExecutionSummary", b =>
@@ -828,84 +828,161 @@ namespace LegalService.API.Migrations
                     b.ToTable("LawyerSpecializations");
                 });
 
-            modelBuilder.Entity("LegalService.API.Models.Entities.LawyerUnavailability", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime>("EndDateTime")
-                        .HasColumnType("timestamp without time zone");
+modelBuilder.Entity("LegalService.API.Models.Entities.LawyerUnavailability", b =>
+{
+    b.Property<Guid>("Id")
+        .ValueGeneratedOnAdd()
+        .HasColumnType("uuid");
 
-                    b.Property<bool>("IsFullDay")
-                        .HasColumnType("boolean");
+    b.Property<DateTime>("CreatedAt")
+        .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("LawyerId")
-                        .HasColumnType("uuid");
+    b.Property<DateTime>("EndDateTime")
+        .HasColumnType("timestamp without time zone");
 
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+    b.Property<bool>("IsFullDay")
+        .HasColumnType("boolean");
 
-                    b.Property<DateTime>("StartDateTime")
-                        .HasColumnType("timestamp without time zone");
+    b.Property<Guid>("LawyerId")
+        .HasColumnType("uuid");
 
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+    b.Property<string>("Reason")
+        .IsRequired()
+        .HasMaxLength(300)
+        .HasColumnType("character varying(300)");
 
-                    b.HasKey("Id");
+    b.Property<DateTime>("StartDateTime")
+        .HasColumnType("timestamp without time zone");
 
-                    b.HasIndex("LawyerId", "StartDateTime", "EndDateTime");
+    b.Property<DateTime?>("UpdatedAt")
+        .HasColumnType("timestamp with time zone");
 
-                    b.ToTable("LawyerUnavailabilities", t =>
-                        {
-                            t.HasCheckConstraint("CK_Unavailability_Time", "\"StartDateTime\" < \"EndDateTime\"");
-                        });
-                });
+    b.HasKey("Id");
 
-            modelBuilder.Entity("LegalService.API.Models.Entities.LawyerWorkingSchedule", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+    b.HasIndex("LawyerId", "StartDateTime", "EndDateTime");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+    b.ToTable("LawyerUnavailabilities", t =>
+    {
+        t.HasCheckConstraint(
+            "CK_Unavailability_Time",
+            "\"StartDateTime\" < \"EndDateTime\"");
+    });
+});
 
-                    b.Property<int>("DayOfWeek")
-                        .HasColumnType("integer");
+modelBuilder.Entity("LegalService.API.Models.Entities.LawyerWorkingSchedule", b =>
+{
+    b.Property<Guid>("Id")
+        .ValueGeneratedOnAdd()
+        .HasColumnType("uuid");
 
-                    b.Property<TimeOnly>("EndTime")
-                        .HasColumnType("time without time zone");
+    b.Property<DateTime>("CreatedAt")
+        .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsWorkingDay")
-                        .HasColumnType("boolean");
+    b.Property<int>("DayOfWeek")
+        .HasColumnType("integer");
 
-                    b.Property<Guid>("LawyerId")
-                        .HasColumnType("uuid");
+    b.Property<TimeOnly>("EndTime")
+        .HasColumnType("time without time zone");
 
-                    b.Property<TimeOnly>("StartTime")
-                        .HasColumnType("time without time zone");
+    b.Property<bool>("IsWorkingDay")
+        .HasColumnType("boolean");
 
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+    b.Property<Guid>("LawyerId")
+        .HasColumnType("uuid");
 
-                    b.HasKey("Id");
+    b.Property<TimeOnly>("StartTime")
+        .HasColumnType("time without time zone");
 
-                    b.HasIndex("LawyerId", "DayOfWeek")
-                        .IsUnique();
+    b.Property<DateTime?>("UpdatedAt")
+        .HasColumnType("timestamp with time zone");
 
-                    b.ToTable("LawyerWorkingSchedules", t =>
-                        {
-                            t.HasCheckConstraint("CK_Schedule_Day", "\"DayOfWeek\" BETWEEN 0 AND 6");
+    b.HasKey("Id");
 
-                            t.HasCheckConstraint("CK_Schedule_Time", "NOT \"IsWorkingDay\" OR \"StartTime\" < \"EndTime\"");
-                        });
-                });
+    b.HasIndex("LawyerId", "DayOfWeek")
+        .IsUnique();
+
+    b.ToTable("LawyerWorkingSchedules", t =>
+    {
+        t.HasCheckConstraint(
+            "CK_Schedule_Day",
+            "\"DayOfWeek\" BETWEEN 0 AND 6");
+
+        t.HasCheckConstraint(
+            "CK_Schedule_Time",
+            "NOT \"IsWorkingDay\" OR \"StartTime\" < \"EndTime\"");
+    });
+});
+
+modelBuilder.Entity("LegalService.API.Models.Entities.LegalDocument", b =>
+{
+    b.Property<Guid>("Id")
+        .ValueGeneratedOnAdd()
+        .HasColumnType("uuid");
+
+    b.Property<string>("ActNumber")
+        .HasMaxLength(100)
+        .HasColumnType("character varying(100)");
+
+    b.Property<DateTime>("CreatedAt")
+        .HasColumnType("timestamp with time zone");
+
+    b.Property<string>("DocumentType")
+        .IsRequired()
+        .HasMaxLength(100)
+        .HasColumnType("character varying(100)");
+
+    b.Property<string>("ExternalId")
+        .HasMaxLength(300)
+        .HasColumnType("character varying(300)");
+
+    b.Property<string>("FullText")
+        .IsRequired()
+        .HasColumnType("text");
+
+    b.Property<bool>("IsPublished")
+        .HasColumnType("boolean");
+
+    b.Property<string>("OfficialUrl")
+        .HasMaxLength(1000)
+        .HasColumnType("character varying(1000)");
+
+    b.Property<DateTime?>("PublishedDate")
+        .HasColumnType("timestamp with time zone");
+
+    b.Property<string>("SourceName")
+        .IsRequired()
+        .HasMaxLength(100)
+        .HasColumnType("character varying(100)");
+
+    b.Property<string>("Summary")
+        .HasColumnType("text");
+
+    b.Property<string>("Title")
+        .IsRequired()
+        .HasMaxLength(500)
+        .HasColumnType("character varying(500)");
+
+    b.Property<DateTime?>("UpdatedAt")
+        .HasColumnType("timestamp with time zone");
+
+    b.HasKey("Id");
+
+    b.HasIndex("ExternalId")
+        .IsUnique();
+
+    b.ToTable("LegalDocuments");
+});
+
+
+
+
+
+
+
+
+
 
             modelBuilder.Entity("LegalService.API.Models.Entities.LegalService", b =>
                 {
@@ -937,33 +1014,32 @@ namespace LegalService.API.Migrations
 
                     b.ToTable("LegalServices");
 
-                    b.HasData(
-                        new
-                        {
-                            LegalServiceId = 1,
-                            Category = "Criminal Law",
-                            CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3860),
-                            Description = "Representation and case review for criminal defense cases.",
-                            ServiceName = "Criminal Defense Consulting"
-                        },
-                        new
-                        {
-                            LegalServiceId = 2,
-                            Category = "Family Law",
-                            CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3860),
-                            Description = "Preparation and filing for divorce and child custody.",
-                            ServiceName = "Divorce & Custody Filing"
-                        },
-                        new
-                        {
-                            LegalServiceId = 3,
-                            Category = "Corporate Law",
-                            CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3860),
-                            Description = "Incorporation filings and compliance setup.",
-                            ServiceName = "Corporate Registration & Compliance"
-                        });
-                });
-
+b.HasData(
+    new
+    {
+        LegalServiceId = 1,
+        Category = "Criminal Law",
+        CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3860),
+        Description = "Representation and case review for criminal defense cases.",
+        ServiceName = "Criminal Defense Consulting"
+    },
+    new
+    {
+        LegalServiceId = 2,
+        Category = "Family Law",
+        CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3860),
+        Description = "Preparation and filing for divorce and child custody.",
+        ServiceName = "Divorce & Custody Filing"
+    },
+    new
+    {
+        LegalServiceId = 3,
+        Category = "Corporate Law",
+        CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3860),
+        Description = "Incorporation filings and compliance setup.",
+        ServiceName = "Corporate Registration & Compliance"
+    });
+});
             modelBuilder.Entity("LegalService.API.Models.Entities.PracticeAreaWorkforceSetting", b =>
                 {
                     b.Property<int>("Id")

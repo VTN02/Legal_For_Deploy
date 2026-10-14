@@ -36,8 +36,8 @@ public class DemoLawyerSeederTests
 
         Assert.Equal(30, first.LawyersCreated);
         Assert.Equal(25, first.ServicesCreated);
-        Assert.Equal(17, first.AvailabilitiesCreated);
-        Assert.Equal(17, first.SlotsCreated);
+        Assert.Equal(23, first.AvailabilitiesCreated);
+        Assert.Equal(23, first.SlotsCreated);
         Assert.True(first.CustomerCreated);
         Assert.Equal(0, second.LawyersCreated);
         Assert.Equal(0, second.ServicesCreated);
@@ -59,13 +59,13 @@ public class DemoLawyerSeederTests
         Assert.Equal(29, demo.Count(l => l.Status == "Active"));
         Assert.Equal(6, demo.Count(l => l.Status == "Active" && l.LawyerSpecializations.Single().SpecializationId == 1));
         Assert.Equal(5, demo.Count(l => l.Status == "Active" && l.LawyerSpecializations.Single().SpecializationId == 5));
-        Assert.Equal(17, await db.LawyerAvailabilities.CountAsync());
+        Assert.Equal(23, await db.LawyerAvailabilities.CountAsync());
         Assert.Equal(210, await db.LawyerWorkingSchedules.CountAsync());
         Assert.Equal(2, await db.LawyerUnavailabilities.CountAsync());
         Assert.All(db.LawyerUnavailabilities, leave => Assert.DoesNotContain("Scheduling demo", leave.Reason));
         Assert.All(db.Appointments, appointment => Assert.Null(appointment.Description));
-        Assert.Equal(17, await db.Appointments.CountAsync());
-        Assert.Equal(17, await db.AvailabilitySlots.CountAsync());
+        Assert.Equal(23, await db.Appointments.CountAsync());
+        Assert.Equal(23, await db.AvailabilitySlots.CountAsync());
         Assert.Equal(25, await db.LegalServices.CountAsync());
         Assert.Equal(0, await db.LawyerLegalServices.CountAsync());
         Assert.All(db.LegalServices, service =>
@@ -164,7 +164,7 @@ public class DemoLawyerSeederTests
         Assert.Equal(30, report.DemoLawyers);
         Assert.Equal(29, report.ActiveDemoLawyers);
         Assert.Equal(25, report.TotalLegalServices);
-        Assert.Equal(17, report.DemoAvailabilityWindows);
+        Assert.Equal(23, report.DemoAvailabilityWindows);
         Assert.True(report.DemoBookableSlots > 174);
         var corporateId = db.Specializations.Single(area => area.Name == "Corporate & Commercial Law").SpecializationId;
         var corporateCandidates = await db.Lawyers.Where(lawyer => lawyer.Status == "Active" &&
@@ -199,7 +199,7 @@ public class DemoLawyerSeederTests
         var result = await DemoLawyerSeeder.SeedExistingSchedulesAsync(db, date);
         Assert.Equal(0, result.Windows); Assert.Equal(0, result.Slots);
         Assert.Equal("Admin edited profile", profile.Name); Assert.Equal("ADMIN/23", profile.LicenseNumber); Assert.Equal(new TimeOnly(19, 0), row.EndTime);
-        Assert.Equal(17, await db.Appointments.CountAsync()); Assert.Equal(2, await db.LawyerUnavailabilities.CountAsync());
+        Assert.Equal(23, await db.Appointments.CountAsync()); Assert.Equal(2, await db.LawyerUnavailabilities.CountAsync());
     }
 
     [Fact]
@@ -222,7 +222,7 @@ public class DemoLawyerSeederTests
         Assert.Equal(0, result.Windows); Assert.Equal(0, result.Slots);
         Assert.StartsWith("[Scheduling demo 0", leave.Reason);
         Assert.Equal(2, await db.LawyerUnavailabilities.CountAsync());
-        Assert.Equal(17, await db.Appointments.CountAsync());
+        Assert.Equal(23, await db.Appointments.CountAsync());
     }
 
     private sealed class TestPasswords : IPasswordService

@@ -6,6 +6,7 @@ import ServicesSection from "../components/common/ServicesSection";
 import HowItWorks from "../components/common/HowItWorks";
 import AISection from "../components/common/AISection";
 import Footer from "../components/common/Footer";
+import Legalintelligencesection from "../components/common/Legalintelligencesection";
 
 const LandingPage = () => {
   return (
@@ -18,6 +19,7 @@ const LandingPage = () => {
         <ServicesSection />
         <HowItWorks />
         <AISection />
+        <Legalintelligencesection />
       </main>
       <Footer />
     </div>

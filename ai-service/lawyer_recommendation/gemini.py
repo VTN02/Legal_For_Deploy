@@ -24,7 +24,7 @@ class ParsedRequirement(BaseModel):
 
 
 logger = logging.getLogger(__name__)
-MAX_PROVIDER_RETRY_WAIT_SECONDS = 1.0
+MAX_PROVIDER_RETRY_WAIT_SECONDS = 45.0
 
 
 def provider_retry_seconds(error):

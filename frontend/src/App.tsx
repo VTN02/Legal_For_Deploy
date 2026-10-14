@@ -31,6 +31,7 @@ import { CustomerLoginPage } from "./pages/customer/CustomerLoginPage";
 import { MyServiceRequestsPage } from "./pages/customer/MyServiceRequestsPage";
 import { CreateServiceRequestPage } from "./pages/customer/CreateServiceRequestPage";
 import { ServiceRequestDetailPage } from "./pages/customer/ServiceRequestDetailPage";
+import LegalIntelligencePage from "./features/legal-intelligence/LegalIntelligencePage";
 import { AboutPublicPage } from "./pages/public/AboutPublicPage";
 import { ServicesPublicPage } from "./pages/public/ServicesPublicPage";
 function App() {
@@ -61,6 +62,11 @@ function App() {
         <Route
           path="/jobs"
           element={<CareersPublicPage />}
+        />
+
+        <Route
+          path="/legal-intelligence"
+          element={<LegalIntelligencePage />}
         />
 
         {/* =========================================================
