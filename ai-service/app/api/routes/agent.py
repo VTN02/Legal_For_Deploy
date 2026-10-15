@@ -150,6 +150,7 @@ async def send_chat_message(session_id: str, request: SendChatMessageRequest):
 
         # Infer expected_type from message text if not provided (e.g. "I uploaded document: Original_Contract.pdf")
         if not expected_type:
+            from app.agents.document_validation import _is_document_type_match
             msg_txt = request.message
             for req_doc in state.get("required_documents", []):
                 req_norm = req_doc.lower().replace(" ", "_")
@@ -158,6 +159,7 @@ async def send_chat_message(session_id: str, request: SendChatMessageRequest):
                     req_doc.lower() in msg_txt.lower()
                     or req_norm in msg_txt.lower()
                     or all(w in msg_txt.lower() for w in req_words)
+                    or _is_document_type_match(msg_txt, req_doc)
                 ):
                     expected_type = req_doc
                     break
@@ -406,7 +408,13 @@ async def upload_chat_document(
 
     # 1. Determine target document type
     target_type = doc_type
-    if not target_type or target_type.strip().lower() in ("string", "null", "none", ""):
+    if target_type and target_type.strip().lower() not in ("string", "null", "none", ""):
+        from app.agents.document_validation import _is_document_type_match
+        for req_type in state.get("required_documents", []):
+            if _is_document_type_match(target_type, req_type):
+                target_type = req_type
+                break
+    else:
         # Find first pending or rejected document
         for req_type, ds in state.get("document_statuses", {}).items():
             if ds.get("status") in ("pending", "rejected"):

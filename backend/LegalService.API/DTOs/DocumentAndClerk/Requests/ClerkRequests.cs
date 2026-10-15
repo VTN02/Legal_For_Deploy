@@ -16,7 +16,8 @@ public class CreateClerkRequest
     [MinLength(6, ErrorMessage = "Password must be at least 6 characters long.")]
     public string Password { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Contact phone or details are required.")]
+    [Required(ErrorMessage = "Contact phone number is required.")]
+    [RegularExpression(@"^(\+?[0-9]{1,4}[\s-]?)?(\(?\d{2,4}\)?[\s-]?)?[\d\s-]{7,15}$", ErrorMessage = "Please enter a valid contact phone number (e.g. +94 77 123 4567 or 0771234567).")]
     public string Contact { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Department is required.")]

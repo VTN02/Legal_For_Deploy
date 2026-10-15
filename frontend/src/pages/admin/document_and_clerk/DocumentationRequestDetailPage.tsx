@@ -579,6 +579,22 @@ export const DocumentationRequestDetailPage: React.FC = () => {
     );
   }
 
+  // AI doc verdicts from recommendation
+  const docVerdicts: Record<string, string> = {};
+  const requiredDocs = request.requiredDocuments || [];
+  if (analysisResult?.recommendation) {
+    const { submitted_documents = [], missing_documents = [] } = analysisResult.recommendation;
+    requiredDocs.forEach(doc => {
+      const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const dc = clean(doc);
+      const isSubmitted = submitted_documents.some(sd => clean(sd).includes(dc) || dc.includes(clean(sd)));
+      const isMissing = missing_documents.some(md => clean(md).includes(dc) || dc.includes(clean(md)));
+      if (isSubmitted && !isMissing) docVerdicts[doc] = "accepted";
+      else if (isMissing) docVerdicts[doc] = "missing";
+      else docVerdicts[doc] = "unknown";
+    });
+  }
+
   const isDocumentReceived = (docName: string) => {
     if (!request) return false;
     // 1. Backend calculated missing list (empty means all received)
@@ -589,7 +605,7 @@ export const DocumentationRequestDetailPage: React.FC = () => {
 
     // 3. If valid uploaded files count meets or exceeds required count, all required docs are satisfied
     const validFiles = (request.documentFiles || []).filter(f => f.documentStatus?.toLowerCase() !== "rejected");
-    if (validFiles.length >= request.requiredDocuments.length && validFiles.length > 0) return true;
+    if (validFiles.length >= requiredDocs.length && validFiles.length > 0) return true;
 
     // 4. Filename semantic matching
     const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -600,22 +616,7 @@ export const DocumentationRequestDetailPage: React.FC = () => {
     });
   };
 
-  const missingCount = request.requiredDocuments.filter(d => !isDocumentReceived(d)).length;
-
-  // AI doc verdicts from recommendation
-  const docVerdicts: Record<string, string> = {};
-  if (analysisResult?.recommendation) {
-    const { submitted_documents = [], missing_documents = [] } = analysisResult.recommendation;
-    request.requiredDocuments.forEach(doc => {
-      const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-      const dc = clean(doc);
-      const isSubmitted = submitted_documents.some(sd => clean(sd).includes(dc) || dc.includes(clean(sd)));
-      const isMissing = missing_documents.some(md => clean(md).includes(dc) || dc.includes(clean(md)));
-      if (isSubmitted && !isMissing) docVerdicts[doc] = "accepted";
-      else if (isMissing) docVerdicts[doc] = "missing";
-      else docVerdicts[doc] = "unknown";
-    });
-  }
+  const missingCount = requiredDocs.filter(d => !isDocumentReceived(d)).length;
 
   const altClerks = analysisResult?.recommendation?.alternative_clerks ?? [];
 

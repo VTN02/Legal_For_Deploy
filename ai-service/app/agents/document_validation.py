@@ -15,6 +15,7 @@ the decision. The threshold logic in _apply_threshold() is the enforcement point
 """
 
 import logging
+import re
 from datetime import datetime, timezone
 
 from app.config.settings import get_settings
@@ -230,6 +231,133 @@ async def document_validation_node(state: AgentState) -> AgentState:
     return state
 
 
+SYNONYM_CLUSTERS = [
+    # 1. Address Proof / Premises Proof
+    {
+        "address", "addressing", "premises", "premise", "utility bill",
+        "residence", "residential", "assessment certificate", "rates receipt",
+        "registered address", "office address", "proof of address", "address proof",
+    },
+    # 2. National Identity / NIC / Signatory ID
+    {
+        "nic", "national identity", "identity card", "identity proof",
+        "passport", "signatory", "surety", "deponent", "testator", "id copy", "nic copy",
+    },
+    # 3. Form 1 / Form 18 / Business Registration
+    {
+        "form 1", "form 18", "business registration", "incorporation form",
+        "br form", "company registration", "certificate of incorporation",
+    },
+    # 4. Articles of Association
+    {
+        "articles of association", "articles of incorporation", "aoa",
+        "constitution", "memorandum", "company articles",
+    },
+    # 5. Tenancy & Commercial Lease
+    {
+        "tenancy", "lease", "rent", "rental", "commercial lease", "lease agreement", "tenancy agreement",
+    },
+    # 6. Title Deed / Property Proof
+    {
+        "title deed", "property deed", "prior title deed", "deed copy",
+        "ownership proof", "asset ownership", "land registry", "conveyance", "deed of transfer",
+    },
+    # 7. Cadastral Survey Plan
+    {
+        "survey plan", "cadastral", "surveyor plan", "boundary plan", "land plan", "cadastral survey",
+    },
+    # 8. Sale Agreement Draft
+    {
+        "sale agreement", "purchase agreement", "agreement to sell", "sale and purchase", "property sale draft",
+    },
+    # 9. Power of Attorney / Proxy Authorization
+    {
+        "power of attorney", "poa", "attorney draft", "proxy authorization", "proxy appointment",
+        "scope of authority", "proxy",
+    },
+    # 10. Last Will and Testament
+    {
+        "will", "testament", "last will", "probate", "testamentary", "draft will agreement",
+    },
+    # 11. Affidavits & Sworn Declarations
+    {
+        "affidavit", "sworn statement", "deponent declaration", "sworn affidavit", "fact affidavit",
+    },
+    # 12. Grama Niladhari / Residence Certificate
+    {
+        "grama", "niladhari", "gn certificate", "residence certificate", "grama sewaka",
+    },
+    # 13. Invoices / Claim Evidence
+    {
+        "claim evidence", "invoice", "invoices", "billing statement", "debt evidence", "unpaid claim",
+    },
+    # 14. Contract & Corporate Agreements
+    {
+        "contract", "commercial agreement", "original contract", "legal agreement", "corporate agreement",
+    },
+    # 15. Formal Letters / Demand Notices
+    {
+        "amendment request", "request letter", "formal letter", "demand notice", "notice letter", "opposing party service address",
+    },
+    # 16. Witness Details
+    {
+        "witness", "witness details", "witness statement", "beneficiary details",
+    },
+]
+
+
+def _normalize_doc_type_text(text: str) -> str:
+    """Normalizes document type strings by lowercasing, stripping punctuation, and basic stemming."""
+    t = (text or "").lower()
+    t = re.sub(r"[\(\)\[\]\{\}\/\\,_\-\.:;+&]", " ", t)
+    t = re.sub(r"\baddressing\b", "address", t)
+    t = re.sub(r"\bregistered\b", "register", t)
+    t = re.sub(r"\bregistration\b", "register", t)
+    t = re.sub(r"\bassociating\b", "association", t)
+    return re.sub(r"\s+", " ", t).strip()
+
+
+def _is_document_type_match(detected: str, expected: str) -> bool:
+    """
+    Determines whether a detected document type satisfies the expected document requirement.
+    Handles transposed word order ('Proof of Address' vs 'Address Proof'), common legal aliases,
+    morphology ('addressing' vs 'address'), and synonym clusters.
+    """
+    if not detected or not expected:
+        return False
+
+    d_norm = _normalize_doc_type_text(detected)
+    e_norm = _normalize_doc_type_text(expected)
+
+    if not d_norm or not e_norm:
+        return False
+
+    # 1. Exact equality after normalization
+    if d_norm == e_norm:
+        return True
+
+    # 2. Substring match if meaningful length
+    if len(d_norm) >= 4 and len(e_norm) >= 4:
+        if d_norm in e_norm or e_norm in d_norm:
+            return True
+
+    # 3. Token intersection ignoring noise words
+    noise = {"of", "the", "a", "an", "and", "or", "for", "to", "in", "copy", "draft", "proof", "document", "form", "certificate"}
+    d_words = set(d_norm.split()) - noise
+    e_words = set(e_norm.split()) - noise
+    if d_words and e_words and (d_words & e_words):
+        return True
+
+    # 4. Synonym cluster matching
+    for cluster in SYNONYM_CLUSTERS:
+        d_match = any(_normalize_doc_type_text(term) in d_norm or d_norm in _normalize_doc_type_text(term) for term in cluster)
+        e_match = any(_normalize_doc_type_text(term) in e_norm or e_norm in _normalize_doc_type_text(term) for term in cluster)
+        if d_match and e_match:
+            return True
+
+    return False
+
+
 def _apply_threshold(
     analysis: DocumentAnalysis,
     expected_type: str,
@@ -244,12 +372,8 @@ def _apply_threshold(
     """
     confidence = analysis.classification_confidence
 
-    # Type mismatch is always a rejection regardless of confidence
-    type_matches = (
-        analysis.document_type.lower().strip() == expected_type.lower().strip()
-        or analysis.document_type.lower() in expected_type.lower()
-        or expected_type.lower() in analysis.document_type.lower()
-    )
+    # Type matching check with robust semantic & synonym cluster support
+    type_matches = _is_document_type_match(analysis.document_type, expected_type)
 
     if not analysis.readable:
         if not any("readable" in iss.lower() or "blurry" in iss.lower() for iss in analysis.issues):

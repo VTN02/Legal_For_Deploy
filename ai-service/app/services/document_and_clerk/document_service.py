@@ -22,7 +22,20 @@ logger = logging.getLogger(__name__)
 PDF_CONTENT_TYPES = {"application/pdf"}
 IMAGE_CONTENT_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/bmp", "image/tiff"}
 
-SAMPLE_DOCS_DIR = Path(__file__).parent.parent.parent.parent / "sample_documents"
+def _find_sample_docs_dir() -> Path:
+    candidates = [
+        Path(__file__).parent.parent.parent.parent / "sample_documents",
+        Path(__file__).resolve().parents[3] / "sample_documents",
+        Path(__file__).resolve().parents[4] / "ai-service" / "sample_documents",
+        Path(__file__).resolve().parents[4] / "mobile" / "assets" / "sample_documents",
+    ]
+    for c in candidates:
+        if c.exists() and any(c.glob("*.pdf")):
+            return c
+    return candidates[0]
+
+
+SAMPLE_DOCS_DIR = _find_sample_docs_dir()
 
 
 def _get_sample_document_bytes(expected_doc_type: str, file_name: str | None = None) -> tuple[bytes | None, str]:
@@ -30,13 +43,14 @@ def _get_sample_document_bytes(expected_doc_type: str, file_name: str | None = N
     Returns (bytes, content_type) from the local sample_documents directory
     matching either the file_name or expected_doc_type.
     """
-    if not SAMPLE_DOCS_DIR.exists():
+    docs_dir = _find_sample_docs_dir()
+    if not docs_dir.exists():
         return None, "application/pdf"
 
     # 1. Match by file_name if provided
     if file_name:
         clean_fn = Path(file_name).name
-        target = SAMPLE_DOCS_DIR / clean_fn
+        target = docs_dir / clean_fn
         if target.exists():
             ct = "image/png" if target.suffix.lower() == ".png" else "application/pdf"
             return target.read_bytes(), ct
@@ -44,11 +58,19 @@ def _get_sample_document_bytes(expected_doc_type: str, file_name: str | None = N
     # 2. Match by expected_doc_type keywords
     clean_type = expected_doc_type.lower()
     mapping = [
-        (("nic", "identity", "passport", "surety", "signatory"), "NIC_Copy.pdf"),
+        (("opposing", "opposing party", "service address"), "Demand_Notice_Address_Proof.pdf"),
+        (("address", "addressing", "residence", "premises", "premise", "utility bill"), "Registered_Address_Proof.pdf"),
+        (("nic", "identity", "passport", "surety", "signatory", "deponent", "testator"), "NIC_Copy.pdf"),
+        (("form 1", "form 18", "business registration", "incorporation"), "Business_Registration_Form.pdf"),
+        (("articles", "association", "aoa"), "Articles_of_Association.pdf"),
+        (("survey", "plan", "cadastral"), "Certified_Survey_Plan.pdf"),
+        (("sale agreement", "agreement to sell", "sale and purchase"), "Sale_Agreement_Draft.pdf"),
         (("tenancy", "lease", "rent", "nda", "custody", "settlement"), "Tenancy_Agreement.pdf"),
         (("deed", "asset", "ownership", "title", "property", "pedigree"), "Asset_Ownership_Proof.pdf"),
         (("attorney", "poa", "proxy"), "Power_of_Attorney_Draft.pdf"),
         (("will", "testament", "probate"), "Draft_Will_Agreement.pdf"),
+        (("grama", "niladhari"), "Grama_Niladhari_Certificate.pdf"),
+        (("invoice", "invoices", "claim evidence", "claim"), "Claim_Evidence_Invoices.pdf"),
         (("affidavit", "plaint", "injunction", "declaration", "certificate"), "Completed_Affidavit_Draft.pdf"),
         (("witness",), "Witness_Details.pdf"),
         (("contract", "business", "corporate", "agreement"), "Original_Contract.pdf"),
@@ -57,12 +79,12 @@ def _get_sample_document_bytes(expected_doc_type: str, file_name: str | None = N
 
     for keywords, fname in mapping:
         if any(k in clean_type for k in keywords):
-            p = SAMPLE_DOCS_DIR / fname
+            p = docs_dir / fname
             if p.exists():
                 return p.read_bytes(), "application/pdf"
 
     # Fallback to first available PDF
-    first_pdf = next(SAMPLE_DOCS_DIR.glob("*.pdf"), None)
+    first_pdf = next(docs_dir.glob("*.pdf"), None)
     if first_pdf and first_pdf.exists():
         return first_pdf.read_bytes(), "application/pdf"
 

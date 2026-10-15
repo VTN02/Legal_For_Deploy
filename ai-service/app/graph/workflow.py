@@ -270,12 +270,15 @@ async def start_document_analysis(session_id: str, file_id: int, expected_doc_ty
     doc_type_key = None
     exp_clean = expected_doc_type.lower().replace("upload", "").strip()
 
+    from app.agents.document_validation import _is_document_type_match
+
     for req_type in state["required_documents"]:
         req_clean = req_type.lower().strip()
         if (
             req_clean == exp_clean
             or exp_clean in req_clean
             or req_clean in exp_clean
+            or _is_document_type_match(exp_clean, req_type)
         ):
             doc_type_key = req_type
             break

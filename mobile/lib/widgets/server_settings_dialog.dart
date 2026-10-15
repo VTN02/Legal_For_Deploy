@@ -104,11 +104,11 @@ void showServerSettingsDialog(BuildContext context, {VoidCallback? onSaved}) {
                       },
                     ),
                     ActionChip(
-                      label: const Text('Wi-Fi LAN (10.88.177.23)', style: TextStyle(fontSize: 11)),
+                      label: Text('Wi-Fi LAN (${ApiConfig.lanBackendUrl.replaceAll('http://', '').replaceAll(':5000', '')})', style: const TextStyle(fontSize: 11)),
                       onPressed: () {
                         setState(() {
-                          backendController.text = 'http://10.88.177.23:5000';
-                          aiController.text = 'http://10.88.177.23:8001';
+                          backendController.text = ApiConfig.lanBackendUrl;
+                          aiController.text = ApiConfig.lanAiUrl;
                         });
                       },
                     ),

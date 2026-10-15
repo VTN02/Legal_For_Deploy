@@ -14,10 +14,10 @@ class ApiConfig {
       dotenv.env['AI_SERVICE_URL'] ?? 'http://localhost:8001';
 
   static String get lanBackendUrl =>
-    dotenv.env['BACKEND_URL'] ?? 'http://10.220.183.67:5000';
+    dotenv.env['BACKEND_URL'] ?? 'http://10.220.152.23:5000';
 
   static String get lanAiUrl =>
-    dotenv.env['AI_SERVICE_URL'] ?? 'http://10.220.183.67:8001';
+    dotenv.env['AI_SERVICE_URL'] ?? 'http://10.220.152.23:8001';
 
 
   static final ValueNotifier<String> backendUrl =

@@ -188,7 +188,7 @@ class SampleDocumentService {
     if (clean.contains('invoice') || clean.contains('claim evidence') || clean.contains('evidence of claim')) {
       return samples.firstWhere((s) => s.fileName == 'Claim_Evidence_Invoices.pdf', orElse: () => samples.first);
     }
-    if (clean.contains('service address') || clean.contains('opposing party') || clean.contains('address for service')) {
+    if (clean.contains('service address') || clean.contains('opposing party') || clean.contains('address for service') || clean.contains('demand notice address')) {
       return samples.firstWhere((s) => s.fileName == 'Demand_Notice_Address_Proof.pdf', orElse: () => samples.first);
     }
     if (clean.contains('grama') || clean.contains('niladhari')) {
@@ -197,13 +197,13 @@ class SampleDocumentService {
     if (clean.contains('proxy')) {
       return samples.firstWhere((s) => s.fileName == 'Client_Proxy_Authorization.pdf', orElse: () => samples.first);
     }
-    if (clean.contains('business registration form') || clean.contains('form 1') || clean.contains('br form')) {
+    if (clean.contains('business registration') || clean.contains('form 1') || clean.contains('form 18') || clean.contains('br form') || clean.contains('incorporation')) {
       return samples.firstWhere((s) => s.fileName == 'Business_Registration_Form.pdf', orElse: () => samples.first);
     }
     if (clean.contains('articles') || clean.contains('association') || clean.contains('aoa')) {
       return samples.firstWhere((s) => s.fileName == 'Articles_of_Association.pdf', orElse: () => samples.first);
     }
-    if (clean.contains('registered address') || clean.contains('address proof') || clean.contains('premise')) {
+    if (clean.contains('registered address') || clean.contains('address proof') || clean.contains('addressing') || clean.contains('address') || clean.contains('premise') || clean.contains('residence')) {
       return samples.firstWhere((s) => s.fileName == 'Registered_Address_Proof.pdf', orElse: () => samples.first);
     }
     if (clean.contains('survey') || clean.contains('plan')) {
