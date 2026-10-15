@@ -177,6 +177,148 @@ export const ClerksPage: React.FC = () => {
   const [confirmClerk, setConfirmClerk] = useState<Clerk | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
 
+  // Edit Clerk Modal State & Form Validation
+  const [editingClerk, setEditingClerk] = useState<Clerk | null>(null);
+  const [editFormData, setEditFormData] = useState<{
+    name: string;
+    email: string;
+    password: string;
+    contact: string;
+    department: string;
+    isActive: boolean;
+  }>({
+    name: "",
+    email: "",
+    password: "",
+    contact: "",
+    department: "",
+    isActive: true,
+  });
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const [editTouched, setEditTouched] = useState<Record<string, boolean>>({});
+  const [editModalError, setEditModalError] = useState<string | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
+
+  // Delete Clerk Modal State
+  const [deletingClerk, setDeletingClerk] = useState<Clerk | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const openEditModal = (clerk: Clerk) => {
+    setEditingClerk(clerk);
+    setEditFormData({
+      name: clerk.fullName || "",
+      email: clerk.email || "",
+      password: "",
+      contact: clerk.contact || "",
+      department: clerk.department || "",
+      isActive: clerk.isActive,
+    });
+    setEditErrors({});
+    setEditTouched({});
+    setEditModalError(null);
+    setShowEditPassword(false);
+  };
+
+  const closeEditModal = () => {
+    setEditingClerk(null);
+    setEditErrors({});
+    setEditTouched({});
+    setEditModalError(null);
+  };
+
+  const handleEditInputChange = (field: string, value: any) => {
+    setEditFormData((prev) => ({ ...prev, [field]: value }));
+    setEditModalError(null);
+    if (editTouched[field]) {
+      const err = field === "password" && !value ? "" : validateField(field, value);
+      setEditErrors((prev) => ({ ...prev, [field]: err }));
+    }
+  };
+
+  const handleEditInputBlur = (field: string) => {
+    setEditTouched((prev) => ({ ...prev, [field]: true }));
+    const val = (editFormData as any)[field];
+    const err = field === "password" && !val ? "" : validateField(field, val);
+    setEditErrors((prev) => ({ ...prev, [field]: err }));
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClerk) return;
+
+    const allTouched: Record<string, boolean> = {
+      name: true,
+      email: true,
+      department: true,
+      contact: true,
+    };
+    if (editFormData.password) {
+      allTouched.password = true;
+    }
+    setEditTouched(allTouched);
+
+    const errors: Record<string, string> = {};
+    const nameErr = validateField("name", editFormData.name);
+    if (nameErr) errors.name = nameErr;
+    const emailErr = validateField("email", editFormData.email);
+    if (emailErr) errors.email = emailErr;
+    const deptErr = validateField("department", editFormData.department);
+    if (deptErr) errors.department = deptErr;
+    const contactErr = validateField("contact", editFormData.contact);
+    if (contactErr) errors.contact = contactErr;
+    if (editFormData.password) {
+      const pwdErr = validateField("password", editFormData.password);
+      if (pwdErr) errors.password = pwdErr;
+    }
+
+    setEditErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      setEditModalError("Please correct the errors highlighted below before saving.");
+      return;
+    }
+
+    try {
+      setEditSaving(true);
+      setEditModalError(null);
+      const payload: any = {
+        name: editFormData.name.trim(),
+        email: editFormData.email.trim(),
+        contact: editFormData.contact.trim(),
+        department: editFormData.department.trim(),
+        isActive: editFormData.isActive,
+      };
+      if (editFormData.password && editFormData.password.trim().length > 0) {
+        payload.password = editFormData.password.trim();
+      }
+
+      const updated = await clerksApi.update(editingClerk.clerkId, payload);
+      closeEditModal();
+      setSuccessMessage(`Clerk "${updated.fullName}" updated successfully.`);
+      await fetchClerks();
+    } catch (err: any) {
+      setEditModalError(err.response?.data?.message || err.message || "Failed to update clerk details");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingClerk) return;
+    try {
+      setDeleteLoading(true);
+      await clerksApi.delete(deletingClerk.clerkId);
+      setSuccessMessage(`Clerk "${deletingClerk.fullName}" has been permanently deleted.`);
+      setDeletingClerk(null);
+      await fetchClerks();
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || "Failed to delete clerk");
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const fetchClerks = async () => {
     try {
       setLoading(true);
@@ -233,7 +375,7 @@ export const ClerksPage: React.FC = () => {
     if (!confirmClerk) return;
     try {
       setStatusLoading(true);
-      await clerksApi.deactivate(confirmClerk.clerkId);
+      await clerksApi.toggleStatus(confirmClerk.clerkId);
       const actionName = confirmClerk.isActive ? "deactivated" : "activated";
       setSuccessMessage(`Clerk "${confirmClerk.fullName}" has been ${actionName} successfully.`);
       setConfirmClerk(null);
@@ -244,6 +386,7 @@ export const ClerksPage: React.FC = () => {
       setStatusLoading(false);
     }
   };
+
 
   return (
     <AdminLayout
@@ -368,28 +511,49 @@ export const ClerksPage: React.FC = () => {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right space-x-2">
-                      <Link
-                        to={`/admin/documentation-requests?clerkId=${clerk.clerkId}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition-colors"
-                      >
-                        📋 View Cases ({clerk.activeAssignmentsCount})
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmClerk(clerk)}
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors ${
-                          clerk.isActive
-                            ? "text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border-rose-200"
-                            : "text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
-                        }`}
-                      >
-                        {clerk.isActive ? "Deactivate" : "Activate"}
-                      </button>
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Link
+                          to={`/admin/documentation-requests?clerkId=${clerk.clerkId}`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition-colors shadow-2xs"
+                          title="View assigned cases"
+                        >
+                          📋 Cases ({clerk.activeAssignmentsCount})
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(clerk)}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                          title="Edit Clerk Details"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmClerk(clerk)}
+                          className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors shadow-2xs cursor-pointer ${
+                            clerk.isActive
+                              ? "text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200"
+                              : "text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                          }`}
+                          title={clerk.isActive ? "Deactivate clerk account" : "Activate clerk account"}
+                        >
+                          {clerk.isActive ? "⏸️ Deactivate" : "▶️ Activate"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingClerk(clerk)}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                          title="Permanently delete clerk account"
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
               )}
+
             </tbody>
           </table>
         </div>
@@ -680,6 +844,318 @@ export const ClerksPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Edit Clerk Modal */}
+      {editingClerk && (
+
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 border border-slate-200 animate-fade-up max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Edit Clerk Details: {formatClerkId(editingClerk.clerkId)}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Update contact information, assigned department, username, status, or set a new password.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeEditModal}
+                className="text-slate-400 hover:text-slate-700 font-bold text-lg px-2 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Error Banner */}
+            {editModalError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-start gap-2.5 animate-fade-in mb-4">
+                <svg className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span className="flex-1 font-medium">{editModalError}</span>
+                <button
+                  type="button"
+                  onClick={() => setEditModalError(null)}
+                  className="text-rose-400 hover:text-rose-700 font-bold px-1"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdate} noValidate className="space-y-3.5">
+              {/* Full Name */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Clerk Full Name <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Priyantha Silva"
+                  value={editFormData.name}
+                  onChange={(e) => handleEditInputChange("name", e.target.value)}
+                  onBlur={() => handleEditInputBlur("name")}
+                  className={`w-full text-xs px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${
+                    editTouched.name && editErrors.name
+                      ? "border-rose-400 bg-rose-50/20 focus:ring-rose-400 focus:border-rose-400"
+                      : "border-slate-300 focus:ring-amber-500 focus:border-amber-500"
+                  }`}
+                />
+                {editTouched.name && editErrors.name && (
+                  <p className="text-[11px] text-rose-600 mt-1 font-medium">{editErrors.name}</p>
+                )}
+              </div>
+
+              {/* Email / Username */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Username / Official Email <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  placeholder="clerk.username@legal.lk"
+                  value={editFormData.email}
+                  onChange={(e) => handleEditInputChange("email", e.target.value)}
+                  onBlur={() => handleEditInputBlur("email")}
+                  className={`w-full text-xs px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${
+                    editTouched.email && editErrors.email
+                      ? "border-rose-400 bg-rose-50/20 focus:ring-rose-400 focus:border-rose-400"
+                      : "border-slate-300 focus:ring-amber-500 focus:border-amber-500"
+                  }`}
+                />
+                {editTouched.email && editErrors.email && (
+                  <p className="text-[11px] text-rose-600 mt-1 font-medium">{editErrors.email}</p>
+                )}
+              </div>
+
+              {/* Department */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Department / Division <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Documentation & Verification"
+                  value={editFormData.department}
+                  onChange={(e) => handleEditInputChange("department", e.target.value)}
+                  onBlur={() => handleEditInputBlur("department")}
+                  className={`w-full text-xs px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${
+                    editTouched.department && editErrors.department
+                      ? "border-rose-400 bg-rose-50/20 focus:ring-rose-400 focus:border-rose-400"
+                      : "border-slate-300 focus:ring-amber-500 focus:border-amber-500"
+                  }`}
+                />
+                {editTouched.department && editErrors.department && (
+                  <p className="text-[11px] text-rose-600 mt-1 font-medium">{editErrors.department}</p>
+                )}
+              </div>
+
+              {/* Contact Phone */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Contact Mobile / Phone Number <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  placeholder="e.g. 077 123 4567 or +94 77 123 4567"
+                  value={editFormData.contact}
+                  onChange={(e) => handleEditInputChange("contact", e.target.value)}
+                  onBlur={() => handleEditInputBlur("contact")}
+                  className={`w-full text-xs px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${
+                    editTouched.contact && editErrors.contact
+                      ? "border-rose-400 bg-rose-50/20 focus:ring-rose-400 focus:border-rose-400"
+                      : "border-slate-300 focus:ring-amber-500 focus:border-amber-500"
+                  }`}
+                />
+                {editTouched.contact && editErrors.contact ? (
+                  <p className="text-[11px] text-rose-600 mt-1 font-medium">{editErrors.contact}</p>
+                ) : (
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    Valid formats: Sri Lankan mobile (07X...), landline (011...), or international (+94...)
+                  </p>
+                )}
+              </div>
+
+              {/* Account Status */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Account Status
+                </label>
+                <div className="flex items-center gap-4">
+                  <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="isActive"
+                      checked={editFormData.isActive === true}
+                      onChange={() => handleEditInputChange("isActive", true)}
+                      className="text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="text-emerald-700 font-semibold">Active</span>
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="isActive"
+                      checked={editFormData.isActive === false}
+                      onChange={() => handleEditInputChange("isActive", false)}
+                      className="text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="text-slate-500">Inactive / Deactivated</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Optional New Password */}
+              <div className="pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Reset Login Password <span className="text-slate-400 font-normal">(Optional)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    className="text-[11px] text-amber-600 hover:text-amber-800 font-medium transition-colors"
+                  >
+                    {showEditPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+                <input
+                  type={showEditPassword ? "text" : "password"}
+                  placeholder="Leave blank to keep current password"
+                  value={editFormData.password}
+                  onChange={(e) => handleEditInputChange("password", e.target.value)}
+                  onBlur={() => handleEditInputBlur("password")}
+                  className={`w-full text-xs px-3 py-2 border rounded-xl focus:outline-none focus:ring-2 transition-colors ${
+                    editTouched.password && editErrors.password
+                      ? "border-rose-400 bg-rose-50/20 focus:ring-rose-400 focus:border-rose-400"
+                      : "border-slate-300 focus:ring-amber-500 focus:border-amber-500"
+                  }`}
+                />
+                {editTouched.password && editErrors.password ? (
+                  <p className="text-[11px] text-rose-600 mt-1 font-medium">{editErrors.password}</p>
+                ) : (
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    Only enter a new password if you want to reset this clerk's login password.
+                  </p>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={closeEditModal}
+                  disabled={editSaving}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors border border-slate-300 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSaving}
+                  className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  {editSaving ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      <span>Saving Changes...</span>
+                    </>
+                  ) : (
+                    <span>Save Changes</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Clerk Confirmation Modal */}
+      {deletingClerk && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 animate-fade-up">
+            <div className="flex items-center gap-3.5 mb-4">
+              <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center shrink-0">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Permanently Delete Clerk?
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Are you sure you want to delete <strong className="text-slate-800">{deletingClerk.fullName}</strong> ({formatClerkId(deletingClerk.clerkId)})?
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-3.5 text-xs text-slate-600 border border-slate-200 mb-4 space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Department:</span>
+                <span className="font-semibold text-slate-800">{deletingClerk.department}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Username / Email:</span>
+                <span className="font-mono text-slate-800">{deletingClerk.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Contact:</span>
+                <span className="text-slate-800">{deletingClerk.contact}</span>
+              </div>
+            </div>
+
+            {deletingClerk.activeAssignmentsCount > 0 && (
+              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-800">
+                <span className="text-base shrink-0 mt-0.5">⚠️</span>
+                <span>
+                  This clerk currently has <strong>{deletingClerk.activeAssignmentsCount}</strong> active assigned documentation case(s). Deleting this clerk will automatically unassign these cases so they can be reassigned to other clerks.
+                </span>
+              </div>
+            )}
+
+            <p className="text-xs text-rose-600 font-medium mb-5 bg-rose-50/50 p-2.5 rounded-lg border border-rose-100">
+              Notice: This action is irreversible. The clerk profile, associated user credentials, and role permissions will be permanently removed.
+            </p>
+
+            <div className="flex justify-end gap-2.5">
+              <button
+                type="button"
+                disabled={deleteLoading}
+                onClick={() => setDeletingClerk(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors border border-slate-300 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteLoading}
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {deleteLoading ? (
+                  <>
+                    <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Yes, Delete Permanently</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
+
   );
 };

@@ -40,6 +40,11 @@ export const clerksApi = {
     return res.data;
   },
 
+  getByUserId: async (userId: string | number): Promise<Clerk> => {
+    const res = await apiClient.get<Clerk>(`/api/clerks/by-user/${userId}`);
+    return res.data;
+  },
+
   create: async (data: CreateClerkData): Promise<Clerk> => {
     const res = await apiClient.post<Clerk>("/api/clerks", data);
     return res.data;
@@ -50,8 +55,18 @@ export const clerksApi = {
     return res.data;
   },
 
-  deactivate: async (id: string | number): Promise<{ message: string }> => {
+  toggleStatus: async (id: string | number): Promise<{ message: string }> => {
+    const res = await apiClient.post<{ message: string }>(`/api/clerks/${id}/toggle-status`);
+    return res.data;
+  },
+
+  delete: async (id: string | number): Promise<{ message: string }> => {
     const res = await apiClient.delete<{ message: string }>(`/api/clerks/${id}`);
+    return res.data;
+  },
+
+  deactivate: async (id: string | number): Promise<{ message: string }> => {
+    const res = await apiClient.post<{ message: string }>(`/api/clerks/${id}/toggle-status`);
     return res.data;
   },
 
@@ -60,3 +75,4 @@ export const clerksApi = {
     return res.data;
   },
 };
+

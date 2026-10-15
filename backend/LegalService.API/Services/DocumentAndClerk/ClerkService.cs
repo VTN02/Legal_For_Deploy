@@ -51,16 +51,50 @@ public class ClerkService : IClerkService
         return clerk == null ? null : MapToResponse(clerk);
     }
 
+    public async Task<ClerkResponse?> GetClerkByUserIdAsync(int userId)
+    {
+        var clerk = await _context.Clerks
+            .Include(c => c.DocumentationRequests)
+            .FirstOrDefaultAsync(c => c.UserId == userId);
+
+        if (clerk == null)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId);
+            if (user != null && !string.IsNullOrEmpty(user.Email))
+            {
+                var userEmail = user.Email.ToLower();
+                clerk = await _context.Clerks
+                    .Include(c => c.DocumentationRequests)
+                    .FirstOrDefaultAsync(c => c.Email != null && c.Email.ToLower() == userEmail);
+
+                if (clerk != null && !clerk.UserId.HasValue)
+                {
+                    clerk.UserId = userId;
+                    await _context.SaveChangesAsync();
+                }
+            }
+        }
+
+        return clerk == null ? null : MapToResponse(clerk);
+    }
+
+
+    private static void ValidateContactNumber(string? contact)
+    {
+        var contactTrimmed = (contact ?? string.Empty).Trim();
+        var digitsOnly = new string(contactTrimmed.Where(char.IsDigit).ToArray());
+
+        if (digitsOnly.Length < 9 || digitsOnly.Length > 15 || digitsOnly.Distinct().Count() <= 1)
+        {
+            throw new ArgumentException("Please enter a valid contact phone / mobile number, not repeated digits.");
+        }
+    }
+
     public async Task<ClerkResponse> CreateClerkAsync(CreateClerkRequest request)
 {
     var email = request.Email.Trim().ToLowerInvariant();
-    var contactTrimmed = (request.Contact ?? string.Empty).Trim();
-    var digitsOnly = new string(contactTrimmed.Where(char.IsDigit).ToArray());
+    ValidateContactNumber(request.Contact);
 
-    if (digitsOnly.Length < 9 || digitsOnly.Length > 15 || digitsOnly.Distinct().Count() <= 1)
-    {
-        throw new ArgumentException("Please enter a valid contact phone / mobile number, not repeated digits.");
-    }
 
     // Check duplicate email in Users
     var existingUser = await _context.Users
@@ -208,6 +242,8 @@ public class ClerkService : IClerkService
     if (clerk == null)
         return null;
 
+    ValidateContactNumber(request.Contact);
+
     User? user = null;
 
     if (clerk.UserId.HasValue)
@@ -304,7 +340,7 @@ public class ClerkService : IClerkService
     return MapToResponse(clerk);
 }
 
-    public async Task<bool> DeactivateClerkAsync(int clerkId)
+    public async Task<bool> ToggleClerkStatusAsync(int clerkId)
     {
         var clerk = await _context.Clerks
             .FirstOrDefaultAsync(c => c.ClerkId == clerkId);
@@ -317,6 +353,54 @@ public class ClerkService : IClerkService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<bool> DeactivateClerkAsync(int clerkId)
+    {
+        return await ToggleClerkStatusAsync(clerkId);
+    }
+
+    public async Task<bool> DeleteClerkAsync(int clerkId)
+    {
+        var clerk = await _context.Clerks
+            .Include(c => c.DocumentationRequests)
+            .FirstOrDefaultAsync(c => c.ClerkId == clerkId);
+
+        if (clerk == null)
+            return false;
+
+        // Unassign all documentation requests previously assigned to this clerk
+        var assignedRequests = await _context.DocumentationRequests
+            .Where(r => r.AssignedClerkId == clerkId)
+            .ToListAsync();
+
+        foreach (var req in assignedRequests)
+        {
+            req.AssignedClerkId = null;
+            req.UpdatedAt = DateTime.UtcNow;
+        }
+
+        // Delete associated User and user roles if linked
+        if (clerk.UserId.HasValue)
+        {
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                .FirstOrDefaultAsync(u => u.UserId == clerk.UserId.Value);
+
+            if (user != null)
+            {
+                if (user.UserRoles != null && user.UserRoles.Any())
+                {
+                    _context.UserRoles.RemoveRange(user.UserRoles);
+                }
+                _context.Users.Remove(user);
+            }
+        }
+
+        _context.Clerks.Remove(clerk);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
 
     public async Task<IEnumerable<DocumentationRequestResponse>> GetAssignedRequestsAsync(int clerkId)
     {

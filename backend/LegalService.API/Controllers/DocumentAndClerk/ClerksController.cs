@@ -41,6 +41,19 @@ public class ClerksController : ControllerBase
     }
 
     /// <summary>
+    /// Get clerk details by linked user ID.
+    /// </summary>
+    [HttpGet("by-user/{userId:int}")]
+    public async Task<IActionResult> GetByUserId(int userId)
+    {
+        var clerk = await _clerkService.GetClerkByUserIdAsync(userId);
+        if (clerk == null)
+            return NotFound(new { message = $"Clerk for User ID '{userId}' was not found." });
+
+        return Ok(clerk);
+    }
+
+    /// <summary>
     /// Register an existing user as a clerk.
     /// </summary>
     [HttpPost]
@@ -54,7 +67,7 @@ public class ClerksController : ControllerBase
     }
 
     /// <summary>
-    /// Update clerk details (contact, department).
+    /// Update clerk details (name, email, password, contact, department, status).
     /// </summary>
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateClerkRequest request)
@@ -62,25 +75,50 @@ public class ClerksController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var updated = await _clerkService.UpdateClerkAsync(id, request);
-        if (updated == null)
-            return NotFound(new { message = $"Clerk with ID '{id}' was not found." });
+        try
+        {
+            var updated = await _clerkService.UpdateClerkAsync(id, request);
+            if (updated == null)
+                return NotFound(new { message = $"Clerk with ID '{id}' was not found." });
 
-        return Ok(updated);
+            return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     /// <summary>
-    /// Deactivate a clerk.
+    /// Delete a clerk permanently.
     /// </summary>
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Deactivate(int id)
+    public async Task<IActionResult> Delete(int id)
     {
-        var success = await _clerkService.DeactivateClerkAsync(id);
+        var success = await _clerkService.DeleteClerkAsync(id);
         if (!success)
             return NotFound(new { message = $"Clerk with ID '{id}' was not found." });
 
-        return Ok(new { message = "Clerk deactivated successfully." });
+        return Ok(new { message = "Clerk deleted successfully." });
     }
+
+    /// <summary>
+    /// Toggle active status of a clerk.
+    /// </summary>
+    [HttpPost("{id:int}/toggle-status")]
+    public async Task<IActionResult> ToggleStatus(int id)
+    {
+        var success = await _clerkService.ToggleClerkStatusAsync(id);
+        if (!success)
+            return NotFound(new { message = $"Clerk with ID '{id}' was not found." });
+
+        return Ok(new { message = "Clerk status updated successfully." });
+    }
+
 
     /// <summary>
     /// Get all documentation requests assigned to a clerk.
