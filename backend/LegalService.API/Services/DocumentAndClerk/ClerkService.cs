@@ -54,6 +54,13 @@ public class ClerkService : IClerkService
     public async Task<ClerkResponse> CreateClerkAsync(CreateClerkRequest request)
 {
     var email = request.Email.Trim().ToLowerInvariant();
+    var contactTrimmed = (request.Contact ?? string.Empty).Trim();
+    var digitsOnly = new string(contactTrimmed.Where(char.IsDigit).ToArray());
+
+    if (digitsOnly.Length < 9 || digitsOnly.Length > 15 || digitsOnly.Distinct().Count() <= 1)
+    {
+        throw new ArgumentException("Please enter a valid contact phone / mobile number, not repeated digits.");
+    }
 
     // Check duplicate email in Users
     var existingUser = await _context.Users

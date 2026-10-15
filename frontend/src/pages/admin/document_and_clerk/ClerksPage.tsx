@@ -78,14 +78,22 @@ export const ClerksPage: React.FC = () => {
       }
       case "contact": {
         const trimmed = value.trim();
-        if (!trimmed) return "Contact phone number is required.";
+        if (!trimmed) return "Contact phone / mobile number is required.";
         const digitsOnly = trimmed.replace(/\D/g, "");
         if (digitsOnly.length < 9 || digitsOnly.length > 15) {
-          return "Phone number must have between 9 and 15 digits.";
+          return "Mobile number must contain between 9 and 15 digits.";
         }
-        const phoneRegex = /^(\+?[0-9]{1,4}[\s-]?)?(\(?\d{2,4}\)?[\s-]?)?[\d\s-]{7,15}$/;
-        if (!phoneRegex.test(trimmed)) {
-          return "Please enter a valid phone number (e.g. +94 77 123 4567 or 0771234567).";
+        // Disallow repeated dummy digits (e.g., 2222222222, 0000000000, 1111111111)
+        if (/^(\d)\1+$/.test(digitsOnly)) {
+          return "Please enter a valid mobile number, not repeated digits.";
+        }
+        // Sri Lankan mobile (07X XXX XXXX), Sri Lankan general phone (0XX XXX XXXX), or international format (+XX XXX XXXXX)
+        const slMobileRegex = /^(?:\+94\s?|0)7[0-8][\s-]?\d{3}[\s-]?\d{4}$/;
+        const slGeneralPhoneRegex = /^(?:\+94\s?|0)(?:7[0-8]|11|21|23|24|25|26|27|31|32|33|34|35|36|37|38|41|45|47|51|52|54|55|57|63|65|66|67)[\s-]?\d{3}[\s-]?\d{4}$/;
+        const intlPhoneRegex = /^\+[1-9]\d{0,3}[\s-]?\(?\d{1,4}\)?[\s-]?\d{3,4}[\s-]?\d{3,9}$/;
+
+        if (!slMobileRegex.test(trimmed) && !slGeneralPhoneRegex.test(trimmed) && !intlPhoneRegex.test(trimmed)) {
+          return "Please enter a valid mobile number (e.g. 077 123 4567 or +94 77 123 4567).";
         }
         return "";
       }
