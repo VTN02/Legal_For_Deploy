@@ -454,110 +454,116 @@ export const ClerksPage: React.FC = () => {
 
       {/* Loading state */}
       {loading ? (
+
         <div className="text-center py-16 text-slate-400">Loading clerk records...</div>
       ) : (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-            <thead className="bg-slate-50 text-slate-600 font-semibold uppercase text-xs tracking-wider">
-              <tr>
-                <th className="px-6 py-3">Clerk ID</th>
-                <th className="px-6 py-3">Clerk / Username</th>
-                <th className="px-6 py-3">Department</th>
-                <th className="px-6 py-3">Contact</th>
-                <th className="px-6 py-3">Active Tasks</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {clerks.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full divide-y divide-slate-200 text-left text-sm min-w-[900px]">
+              <thead className="bg-slate-50/80 text-slate-600 font-semibold uppercase text-[11px] tracking-wider border-b border-slate-200">
                 <tr>
-                  <td colSpan={7} className="text-center py-10 text-slate-400">
-                    No clerks found. Click "Register New Clerk" to add one.
-                  </td>
+                  <th className="px-4 py-3.5 whitespace-nowrap">Clerk ID</th>
+                  <th className="px-4 py-3.5 whitespace-nowrap">Clerk / Username</th>
+                  <th className="px-4 py-3.5 whitespace-nowrap">Department</th>
+                  <th className="px-4 py-3.5 whitespace-nowrap">Contact</th>
+                  <th className="px-3 py-3.5 text-center whitespace-nowrap">Active Tasks</th>
+                  <th className="px-3 py-3.5 text-center whitespace-nowrap">Status</th>
+                  <th className="px-4 py-3.5 text-right whitespace-nowrap pr-5">Actions</th>
                 </tr>
-              ) : (
-                clerks.map((clerk) => (
-                  <tr key={clerk.clerkId} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-mono font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                        {formatClerkId(clerk.clerkId)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-900">{clerk.fullName || "Unnamed Clerk"}</div>
-                      <div className="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
-                        <span className="text-slate-400">✉</span>
-                        <span className="font-mono text-[11px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60">
-                          {clerk.email || "No email"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-slate-700">{clerk.department}</td>
-                    <td className="px-6 py-4 text-slate-600">{clerk.contact}</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                        {clerk.activeAssignmentsCount} tasks
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {clerk.isActive ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          Active
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-500">
-                          Inactive
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <Link
-                          to={`/admin/documentation-requests?clerkId=${clerk.clerkId}`}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition-colors shadow-2xs"
-                          title="View assigned cases"
-                        >
-                          📋 Cases ({clerk.activeAssignmentsCount})
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => openEditModal(clerk)}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1 rounded-lg transition-colors shadow-2xs cursor-pointer"
-                          title="Edit Clerk Details"
-                        >
-                          ✏️ Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setConfirmClerk(clerk)}
-                          className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors shadow-2xs cursor-pointer ${
-                            clerk.isActive
-                              ? "text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-200"
-                              : "text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
-                          }`}
-                          title={clerk.isActive ? "Deactivate clerk account" : "Activate clerk account"}
-                        >
-                          {clerk.isActive ? "⏸️ Deactivate" : "▶️ Activate"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeletingClerk(clerk)}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-lg transition-colors shadow-2xs cursor-pointer"
-                          title="Permanently delete clerk account"
-                        >
-                          🗑️ Delete
-                        </button>
-                      </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {clerks.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-10 text-slate-400">
+                      No clerks found. Click "Register New Clerk" to add one.
                     </td>
                   </tr>
-                ))
-              )}
-
-            </tbody>
-          </table>
+                ) : (
+                  clerks.map((clerk) => (
+                    <tr key={clerk.clerkId} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono font-semibold bg-amber-50 text-amber-800 border border-amber-200/80">
+                          {formatClerkId(clerk.clerkId)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="font-semibold text-slate-900 text-xs sm:text-sm">{clerk.fullName || "Unnamed Clerk"}</div>
+                        <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex items-center gap-1">
+                          <span className="text-amber-800 bg-amber-50/80 px-1.5 py-0.2 rounded border border-amber-200/60">
+                            {clerk.email || "No email"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 text-xs text-slate-700 font-medium whitespace-nowrap">{clerk.department}</td>
+                      <td className="px-4 py-3.5 text-xs text-slate-600 font-mono whitespace-nowrap">{clerk.contact}</td>
+                      <td className="px-3 py-3.5 text-center whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                          {clerk.activeAssignmentsCount} tasks
+                        </span>
+                      </td>
+                      <td className="px-3 py-3.5 text-center whitespace-nowrap">
+                        {clerk.isActive ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-500">
+                            Inactive
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 text-right whitespace-nowrap pr-5">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Link
+                            to={`/admin/documentation-requests?clerkId=${clerk.clerkId}`}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100/80 border border-amber-200/80 px-2 py-1 rounded-lg transition-colors shadow-2xs"
+                            title="View assigned cases"
+                          >
+                            <span>📋</span>
+                            <span>Cases ({clerk.activeAssignmentsCount})</span>
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(clerk)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100/80 border border-blue-200/80 px-2 py-1 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                            title="Edit Clerk Details"
+                          >
+                            <span>✏️</span>
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmClerk(clerk)}
+                            className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded-lg border transition-colors shadow-2xs cursor-pointer ${
+                              clerk.isActive
+                                ? "text-amber-800 hover:text-amber-900 bg-amber-50/70 hover:bg-amber-100 border-amber-200/70"
+                                : "text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                            }`}
+                            title={clerk.isActive ? "Deactivate clerk account" : "Activate clerk account"}
+                          >
+                            <span>{clerk.isActive ? "⏸️" : "▶️"}</span>
+                            <span>{clerk.isActive ? "Deactivate" : "Activate"}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeletingClerk(clerk)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100/80 border border-rose-200/80 px-2 py-1 rounded-lg transition-colors shadow-2xs cursor-pointer"
+                            title="Permanently delete clerk account"
+                          >
+                            <span>🗑️</span>
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
+
 
       {/* Add Clerk Modal */}
       {showAddModal && (
