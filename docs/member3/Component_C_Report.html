@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SE3090 Assignment 1 — Component C Technical Report</title>
+<style>
+    @page {
+        size: A4;
+        margin: 20mm 18mm 20mm 18mm;
+    }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: #1e293b;
+        background: #ffffff;
+        line-height: 1.6;
+        font-size: 13.5px;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 24px;
+    }
+    h1 {
+        color: #1e3a8a;
+        font-size: 22px;
+        border-bottom: 2px solid #2563eb;
+        padding-bottom: 8px;
+        margin-top: 32px;
+        page-break-after: avoid;
+    }
+    h2 {
+        color: #2563eb;
+        font-size: 17px;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 6px;
+        margin-top: 28px;
+        page-break-after: avoid;
+        page-break-before: auto;
+    }
+    h3 {
+        color: #334155;
+        font-size: 14.5px;
+        margin-top: 20px;
+        page-break-after: avoid;
+    }
+    h4 {
+        color: #475569;
+        font-size: 13.5px;
+        margin-top: 16px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0;
+        font-size: 12.5px;
+        page-break-inside: avoid;
+    }
+    th, td {
+        border: 1px solid #cbd5e1;
+        padding: 8px 12px;
+        text-align: left;
+    }
+    th {
+        background: #1e3a8a;
+        color: #ffffff;
+        font-weight: 600;
+    }
+    tr:nth-child(even) {
+        background: #f8fafc;
+    }
+    pre {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-left: 4px solid #3b82f6;
+        padding: 12px 16px;
+        border-radius: 4px;
+        overflow-x: auto;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 11.5px;
+        line-height: 1.45;
+        page-break-inside: avoid;
+    }
+    code {
+        font-family: Consolas, "Courier New", monospace;
+        background: #f1f5f9;
+        color: #0f172a;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-size: 12px;
+    }
+    pre code {
+        background: transparent;
+        padding: 0;
+        border-radius: 0;
+    }
+    blockquote {
+        border-left: 4px solid #2563eb;
+        background: #eff6ff;
+        margin: 16px 0;
+        padding: 10px 16px;
+        color: #1e3a8a;
+        font-style: italic;
+        border-radius: 0 4px 4px 0;
+    }
+    img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        display: block;
+        margin: 16px auto 6px auto;
+        page-break-inside: avoid;
+    }
+    hr {
+        border: 0;
+        height: 1px;
+        background: #e2e8f0;
+        margin: 24px 0;
+    }
+    .footer-note {
+        margin-top: 40px;
+        padding-top: 16px;
+        border-top: 1px solid #cbd5e1;
+        font-size: 11px;
+        color: #64748b;
+        text-align: center;
+    }
+    @media print {
+        body {
+            max-width: 100%;
+            padding: 0;
+        }
+        h2 {
+            page-break-before: always;
+        }
+        h2:first-of-type {
+            page-break-before: avoid;
+        }
+    }
+</style>
+</head>
+<body>
+<h1>SE3090 — Software Engineering Frameworks (2026)</h1>
+<h2>Assignment 1: Integrated Full-Stack and Agentic AI Application Development</h2>
+<h3>Component C Technical Report &amp; Individual Contribution Portfolio: Clerk &amp; Documentation Management</h3>
+<hr />
+<table>
+<thead>
+<tr>
+<th><strong>Metric / Field</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Student Name</strong></td>
+<td>Vijayakumar Vithusan (VTN02)</td>
+</tr>
+<tr>
+<td><strong>Student ID / Email</strong></td>
+<td>vijayakumarvithusan2912@gmail.com</td>
+</tr>
+<tr>
+<td><strong>Specialization</strong></td>
+<td>BSc (Hons) in Information Technology — Software Engineering</td>
+</tr>
+<tr>
+<td><strong>Assigned Component</strong></td>
+<td><strong>Component C: Clerk &amp; Documentation Management</strong></td>
+</tr>
+<tr>
+<td><strong>Assigned Agent</strong></td>
+<td><strong>Documentation &amp; Clerk Verification Agent</strong></td>
+</tr>
+<tr>
+<td><strong>Git Feature Branch</strong></td>
+<td><code>Document-&amp;-Cleark</code> (Merged to <code>origin/develop</code>)</td>
+</tr>
+<tr>
+<td><strong>Repository</strong></td>
+<td><code>Intelligent-legal-service</code></td>
+</tr>
+<tr>
+<td><strong>Report Date</strong></td>
+<td>September 28, 2026</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>Table of Contents</h2>
+<ol>
+<li><a href="#1-executive-summary--component-scope">Executive Summary &amp; Component Scope</a></li>
+<li><a href="#2-end-to-end-system--integration-architecture">End-to-End System &amp; Integration Architecture</a></li>
+<li><a href="#3-part-1-aspnet-core-restful-api-backend">Part 1: ASP.NET Core RESTful API Backend</a></li>
+<li><a href="#4-part-2-postgresql-database--data-modeling">Part 2: PostgreSQL Database &amp; Data Modeling</a></li>
+<li><a href="#5-part-3-react-web-application">Part 3: React Web Application</a></li>
+<li><a href="#6-part-4-flutter-mobile-application">Part 4: Flutter Mobile Application</a></li>
+<li><a href="#7-part-5-agentic-ai-subsystem">Part 5: Agentic AI Subsystem</a></li>
+<li><a href="#8-part-6-testing-cicd-and-git-workflow">Part 6: Testing, CI/CD, and Git Workflow</a></li>
+<li><a href="#9-part-7-architecture-decision-records-adr-alignment">Part 7: Architecture Decision Records (ADR) Alignment</a></li>
+<li><a href="#10-part-8-individual-ai-usage-log--ai-reflection-clear-level-4">Part 8: Individual AI Usage Log &amp; AI Reflection (CLEAR Level 4)</a></li>
+<li><a href="#11-individual-contribution-portfolio--sign-off">Individual Contribution Portfolio &amp; Sign-off</a></li>
+</ol>
+<hr />
+<h2>1. Executive Summary &amp; Component Scope</h2>
+<p>Component C — <strong>Clerk &amp; Documentation Management</strong> — is the operational hub of the LegalEase Intelligent Legal Services platform. It provides the complete end-to-end pipeline from client document submission to clerk review, AI-assisted validation, and administrative oversight.</p>
+<h3>What I Built</h3>
+<table>
+<thead>
+<tr>
+<th>Sub-System</th>
+<th>My Deliverable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ASP.NET Core 8 API</strong></td>
+<td>5 Controllers, 5 Services, complete CRUD + business logic</td>
+</tr>
+<tr>
+<td><strong>PostgreSQL Schema</strong></td>
+<td>4 tables: <code>DocumentationRequests</code>, <code>DocumentFiles</code>, <code>Clerks</code>, <code>DocumentationServices</code></td>
+</tr>
+<tr>
+<td><strong>React Web App</strong></td>
+<td>Admin Console (Documentation Requests, Clerk Management, Service Catalog) + Clerk Workspace</td>
+</tr>
+<tr>
+<td><strong>Flutter Mobile</strong></td>
+<td>Client-facing Documentation Services catalog, request tracking, document upload</td>
+</tr>
+<tr>
+<td><strong>LangGraph AI Agent</strong></td>
+<td>4-node multi-agent: Supervisor → DocAnalysis → Completeness → ClerkRecommendation</td>
+</tr>
+<tr>
+<td><strong>Unit Tests</strong></td>
+<td>41 passing unit tests covering all service methods</td>
+</tr>
+</tbody>
+</table>
+<h3>Running Application — Landing Page</h3>
+<p><img alt="LegalEase Landing Page" src="screenshots/01_landing_page.png" /></p>
+<blockquote>
+<p><strong>Figure 1.1</strong> — The LegalEase public-facing landing page (<code>http://localhost:5173</code>) showing the branded home screen with navigation to Login, Services, and the application suite. The headline <em>"Trusted counsel, supported by intelligent technology"</em> reflects the AI-assisted legal platform branding.</p>
+</blockquote>
+<hr />
+<h2>2. End-to-End System &amp; Integration Architecture</h2>
+<pre><code>┌──────────────────────────────────────────────────────────────────────────────┐
+│                        COMPONENT C — SYSTEM ARCHITECTURE                    │
+│                      Clerk &amp; Documentation Management                        │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+  ┌─────────────────┐    ┌─────────────────┐    ┌──────────────────────────────┐
+  │  Flutter Mobile  │    │   React Web App  │    │   ASP.NET Core 8 Web API    │
+  │  (Dart/Flutter)  │    │  (TypeScript)    │    │   (C# / EF Core / JWT)      │
+  │                  │    │                  │    │                              │
+  │ • Service Catalog│    │ • Admin Console  │    │ DocumentationRequestsCtrl    │
+  │ • Request Submit │    │   /admin/docs    │    │ DocumentFilesController      │
+  │ • Doc Upload     │    │ • Clerk Workspace│    │ ClerksController             │
+  │ • Status Track   │◄──►│   /clerk/cases  │◄──►│ DocumentationSvcsController  │
+  │ • Camera/Files   │    │ • Service Mgmt   │    │ AgentController              │
+  └─────────────────┘    └─────────────────┘    └──────────────┬───────────────┘
+                                                                │ EF Core
+                                                 ┌──────────────▼───────────────┐
+                                                 │       PostgreSQL Database     │
+                                                 │  • DocumentationRequests      │
+                                                 │  • DocumentFiles              │
+                                                 │  • Clerks                     │
+                                                 │  • DocumentationServices      │
+                                                 └──────────────┬───────────────┘
+                                                                │ HTTP (internal)
+                                                 ┌──────────────▼───────────────┐
+                                                 │   Python FastAPI + LangGraph  │
+                                                 │   (port 8001 — internal only) │
+                                                 │  ┌──────────────────────────┐│
+                                                 │  │ Supervisor Agent         ││
+                                                 │  │   ├─ DocAnalysis Agent   ││
+                                                 │  │   ├─ Completeness Agent  ││
+                                                 │  │   └─ ClerkRecommend Agent││
+                                                 │  └──────────────────────────┘│
+                                                 └──────────────────────────────┘
+</code></pre>
+<h3>Authentication &amp; Authorization Flow</h3>
+<p>All protected API routes use <strong>JWT Bearer authentication</strong>. The client (React/Flutter) authenticates via <code>/api/auth/login</code>, receives a JWT token, and sends it in the <code>Authorization: Bearer &lt;token&gt;</code> header on every subsequent request.</p>
+<pre><code>Client → POST /api/auth/login { email, password }
+      ← 200 OK { token: &quot;eyJ...&quot;, role: &quot;Admin&quot;|&quot;Clerk&quot;|&quot;Client&quot; }
+
+Client → GET /api/documentation-requests
+         Authorization: Bearer eyJ...
+      ← 200 OK [ { requestId, status, ... } ]
+</code></pre>
+<p><strong>Role-Based Access:</strong><br />
+- <code>Admin</code> — Full access to all documentation, clerk, and service management endpoints<br />
+- <code>Clerk</code> — Access to assigned cases only via clerk-specific endpoints<br />
+- <code>Client</code> — Access to their own requests and file upload endpoints</p>
+<hr />
+<h2>3. Part 1: ASP.NET Core RESTful API Backend</h2>
+<h3>3.1 Architecture: Controller &amp; Service Layer</h3>
+<p>The backend follows a clean <strong>Controller → Service → Repository (EF Core)</strong> layered architecture. Each controller delegates all business logic to its corresponding service, keeping controllers thin and services testable.</p>
+<pre><code>backend/LegalService.API/
+├── Controllers/
+│   └── DocumentAndClerk/
+│       ├── DocumentationRequestsController.cs  ← 7 endpoints
+│       ├── DocumentFilesController.cs           ← 4 endpoints
+│       ├── ClerksController.cs                  ← 5 endpoints
+│       ├── DocumentationServicesController.cs   ← 4 endpoints
+│       └── AgentController.cs                   ← 1 endpoint (AI bridge)
+├── Services/
+│   └── DocumentAndClerk/
+│       ├── DocumentationRequestService.cs
+│       ├── DocumentFileService.cs
+│       ├── ClerkService.cs
+│       └── DocumentationServiceService.cs
+└── DTOs/
+    └── DocumentAndClerk/
+        └── [Request/Response DTOs for each entity]
+</code></pre>
+<h3>3.2 Complete REST API Contract</h3>
+<h4>Documentation Requests (<code>/api/documentation-requests</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Route</th>
+<th>Auth</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/documentation-requests</code></td>
+<td>Admin</td>
+<td>Get all requests with clerk assignment details</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/documentation-requests/{id}</code></td>
+<td>Admin/Clerk</td>
+<td>Get single request with uploaded files</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/documentation-requests</code></td>
+<td>Client</td>
+<td>Submit new documentation request</td>
+</tr>
+<tr>
+<td><code>PATCH</code></td>
+<td><code>/api/documentation-requests/{id}/status</code></td>
+<td>Admin/Clerk</td>
+<td>Update request status</td>
+</tr>
+<tr>
+<td><code>PATCH</code></td>
+<td><code>/api/documentation-requests/{id}/assign</code></td>
+<td>Admin</td>
+<td>Assign/reassign clerk</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/api/documentation-requests/{id}</code></td>
+<td>Admin</td>
+<td>Hard delete request</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/documentation-requests/my</code></td>
+<td>Client</td>
+<td>Get client's own requests</td>
+</tr>
+</tbody>
+</table>
+<h4>Document Files (<code>/api/document-files</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Route</th>
+<th>Auth</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/document-files/upload</code></td>
+<td>Client</td>
+<td>Upload file for a request (multipart/form-data)</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/document-files/{requestId}</code></td>
+<td>Admin/Clerk</td>
+<td>List all files for a request</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/document-files/download/{fileId}</code></td>
+<td>Admin/Clerk/Client</td>
+<td>Download file by ID</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/api/document-files/{fileId}</code></td>
+<td>Admin</td>
+<td>Delete a document file</td>
+</tr>
+</tbody>
+</table>
+<h4>Clerks (<code>/api/clerks</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Route</th>
+<th>Auth</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/clerks</code></td>
+<td>Admin</td>
+<td>List all clerks with case workload</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/clerks/{id}</code></td>
+<td>Admin</td>
+<td>Get single clerk profile</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/clerks</code></td>
+<td>Admin</td>
+<td>Register new clerk account</td>
+</tr>
+<tr>
+<td><code>PATCH</code></td>
+<td><code>/api/clerks/{id}/status</code></td>
+<td>Admin</td>
+<td>Activate/deactivate clerk</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/clerks/login</code></td>
+<td>Public</td>
+<td>Clerk authentication endpoint</td>
+</tr>
+</tbody>
+</table>
+<h4>Documentation Services (<code>/api/documentation-services</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Route</th>
+<th>Auth</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/documentation-services</code></td>
+<td>Public</td>
+<td>Get all active service templates</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/documentation-services/{id}</code></td>
+<td>Public</td>
+<td>Get service with required document list</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/documentation-services</code></td>
+<td>Admin</td>
+<td>Create new service template</td>
+</tr>
+<tr>
+<td><code>PATCH</code></td>
+<td><code>/api/documentation-services/{id}</code></td>
+<td>Admin</td>
+<td>Update service template</td>
+</tr>
+</tbody>
+</table>
+<h4>AI Agent Bridge (<code>/api/agent</code>)</h4>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Route</th>
+<th>Auth</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/agent/analyze</code></td>
+<td>Admin/Clerk</td>
+<td>Trigger LangGraph multi-agent review pipeline</td>
+</tr>
+</tbody>
+</table>
+<h3>3.3 Key Business Logic Rules</h3>
+<p><strong>Clerk Assignment Guard:</strong></p>
+<pre><code class="language-csharp">// DocumentationRequestService.cs
+public async Task&lt;bool&gt; AssignClerkAsync(int requestId, int clerkId)
+{
+    var clerk = await _context.Clerks
+        .FirstOrDefaultAsync(c =&gt; c.ClerkId == clerkId &amp;&amp; c.IsActive);
+    if (clerk == null)
+        throw new InvalidOperationException(&quot;Cannot assign an inactive clerk.&quot;);
+
+    var request = await _context.DocumentationRequests.FindAsync(requestId);
+    request.ClerkId = clerkId;
+    request.Status = &quot;Assigned&quot;;
+    request.UpdatedAt = DateTime.UtcNow;
+    await _context.SaveChangesAsync();
+    return true;
+}
+</code></pre>
+<p><strong>Document Completeness Check:</strong></p>
+<pre><code class="language-csharp">// DocumentationRequestService.cs
+public async Task&lt;bool&gt; CheckDocumentCompletenessAsync(int requestId)
+{
+    var request = await _context.DocumentationRequests
+        .Include(r =&gt; r.Service)
+        .Include(r =&gt; r.Files)
+        .FirstOrDefaultAsync(r =&gt; r.RequestId == requestId);
+
+    var requiredDocs = request.Service?.RequiredDocuments ?? new List&lt;string&gt;();
+    var uploadedTypes = request.Files
+        .Select(f =&gt; f.DocumentType)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    return requiredDocs.All(doc =&gt; uploadedTypes.Contains(doc));
+}
+</code></pre>
+<p><strong>Status State Machine</strong> (enforced server-side):</p>
+<pre><code>Pending → Assigned → In Progress → Completed
+                  ↓              ↓
+             Missing Docs    Rejected
+</code></pre>
+<h3>3.4 Swagger API Documentation — Live Evidence</h3>
+<p><img alt="Swagger API Overview" src="screenshots/09_swagger_overview.png" /></p>
+<blockquote>
+<p><strong>Figure 3.1</strong> — Swagger UI at <code>http://localhost:5295/swagger</code> showing all API endpoint groups registered in the LegalEase system including DocumentationRequests, DocumentFiles, Clerks, and DocumentationServices.</p>
+</blockquote>
+<p><img alt="Swagger Documentation Requests Section" src="screenshots/10_swagger_doc_requests.png" /></p>
+<blockquote>
+<p><strong>Figure 3.2</strong> — The <code>DocumentationRequests</code> API group expanded in Swagger, showing all 7 endpoints with HTTP verbs (<code>GET</code>, <code>POST</code>, <code>PATCH</code>, <code>DELETE</code>) and route parameters.</p>
+</blockquote>
+<p><img alt="Swagger Clerks Section" src="screenshots/11_swagger_clerks.png" /></p>
+<blockquote>
+<p><strong>Figure 3.3</strong> — The <code>Clerks</code> API group in Swagger showing clerk management (list, get, create, status update) and the dedicated <code>POST /api/clerks/login</code> authentication endpoint.</p>
+</blockquote>
+<p><img alt="Swagger Document Files Section" src="screenshots/12_swagger_doc_files.png" /></p>
+<blockquote>
+<p><strong>Figure 3.4</strong> — The <code>DocumentFiles</code> API group showing <code>POST /api/document-files/upload</code> (multipart/form-data), listing, download and deletion endpoints.</p>
+</blockquote>
+<hr />
+<h2>4. Part 2: PostgreSQL Database &amp; Data Modeling</h2>
+<h3>4.1 Normalized Relational Schema</h3>
+<pre><code class="language-sql">-- Table: DocumentationServices
+CREATE TABLE &quot;DocumentationServices&quot; (
+    &quot;ServiceId&quot;          SERIAL PRIMARY KEY,
+    &quot;Name&quot;               VARCHAR(255) NOT NULL UNIQUE,
+    &quot;Description&quot;        TEXT,
+    &quot;RequiredDocuments&quot;  TEXT[] NOT NULL DEFAULT '{}',  -- PostgreSQL array
+    &quot;IsActive&quot;           BOOLEAN NOT NULL DEFAULT TRUE,
+    &quot;CreatedAt&quot;          TIMESTAMPTZ NOT NULL,
+    &quot;UpdatedAt&quot;          TIMESTAMPTZ NOT NULL
+);
+
+-- Table: Clerks
+CREATE TABLE &quot;Clerks&quot; (
+    &quot;ClerkId&quot;       SERIAL PRIMARY KEY,
+    &quot;Name&quot;          VARCHAR(255) NOT NULL,
+    &quot;Email&quot;         VARCHAR(255) UNIQUE,
+    &quot;Department&quot;    VARCHAR(255),
+    &quot;Contact&quot;       VARCHAR(100),
+    &quot;IsActive&quot;      BOOLEAN NOT NULL DEFAULT TRUE,
+    &quot;PasswordHash&quot;  TEXT NOT NULL,
+    &quot;CreatedAt&quot;     TIMESTAMPTZ NOT NULL,
+    &quot;UpdatedAt&quot;     TIMESTAMPTZ NOT NULL
+);
+
+-- Table: DocumentationRequests
+CREATE TABLE &quot;DocumentationRequests&quot; (
+    &quot;RequestId&quot;      SERIAL PRIMARY KEY,
+    &quot;CustomerId&quot;     INTEGER NOT NULL REFERENCES &quot;Users&quot;(&quot;UserId&quot;),
+    &quot;ServiceId&quot;      INTEGER NOT NULL REFERENCES &quot;DocumentationServices&quot;(&quot;ServiceId&quot;),
+    &quot;ClerkId&quot;        INTEGER REFERENCES &quot;Clerks&quot;(&quot;ClerkId&quot;),  -- nullable (unassigned)
+    &quot;DocumentType&quot;   VARCHAR(255),
+    &quot;Status&quot;         VARCHAR(50) NOT NULL DEFAULT 'Pending',
+    &quot;ReuploadNote&quot;   TEXT,
+    &quot;CreatedAt&quot;      TIMESTAMPTZ NOT NULL,
+    &quot;UpdatedAt&quot;      TIMESTAMPTZ NOT NULL
+);
+
+-- Table: DocumentFiles
+CREATE TABLE &quot;DocumentFiles&quot; (
+    &quot;FileId&quot;        SERIAL PRIMARY KEY,
+    &quot;RequestId&quot;     INTEGER NOT NULL REFERENCES &quot;DocumentationRequests&quot;(&quot;RequestId&quot;),
+    &quot;FileName&quot;      VARCHAR(500) NOT NULL,
+    &quot;FilePath&quot;      TEXT NOT NULL,
+    &quot;DocumentType&quot;  VARCHAR(255),
+    &quot;FileSize&quot;      BIGINT,
+    &quot;UploadedAt&quot;    TIMESTAMPTZ NOT NULL
+);
+</code></pre>
+<h3>4.2 Entity Relationships (ERD)</h3>
+<pre><code>DocumentationServices ──┐
+  ServiceId (PK)        │ 1
+  Name                  │
+  RequiredDocuments[]   │ ∞
+  IsActive              ├─── DocumentationRequests ──┐
+                        │      RequestId (PK)         │ 1
+Clerks ─────────────────┘      CustomerId (FK→Users) │
+  ClerkId (PK)          ∞      ServiceId (FK)         │ ∞
+  Name                         ClerkId (FK, nullable) ├─── DocumentFiles
+  Email                        Status                 │      FileId (PK)
+  Department                   ReuploadNote           │      RequestId (FK)
+  IsActive                     DocumentType           │      FileName
+  PasswordHash                                        │      FilePath
+                                                      │      DocumentType
+Users ─────────────── CustomerId (FK) ────────────────┘      FileSize
+  UserId (PK)
+  Email
+  Role
+</code></pre>
+<h3>4.3 Entity Framework Core Configuration</h3>
+<pre><code class="language-csharp">// ApplicationDbContext.cs — DocumentationRequest entity configuration
+modelBuilder.Entity&lt;DocumentationRequest&gt;(entity =&gt;
+{
+    entity.HasKey(e =&gt; e.RequestId);
+    entity.Property(e =&gt; e.Status).HasDefaultValue(&quot;Pending&quot;);
+    entity.Property(e =&gt; e.DocumentType).HasMaxLength(255);
+
+    entity.HasOne(e =&gt; e.Service)
+          .WithMany()
+          .HasForeignKey(e =&gt; e.ServiceId)
+          .OnDelete(DeleteBehavior.Restrict);
+
+    entity.HasOne(e =&gt; e.Clerk)
+          .WithMany(c =&gt; c.DocumentationRequests)
+          .HasForeignKey(e =&gt; e.ClerkId)
+          .IsRequired(false)
+          .OnDelete(DeleteBehavior.SetNull);
+
+    entity.HasMany(e =&gt; e.Files)
+          .WithOne(f =&gt; f.Request)
+          .HasForeignKey(f =&gt; f.RequestId)
+          .OnDelete(DeleteBehavior.Cascade);
+});
+
+// DocumentationService — PostgreSQL array column for RequiredDocuments
+modelBuilder.Entity&lt;DocumentationService&gt;(entity =&gt;
+{
+    entity.Property(e =&gt; e.RequiredDocuments)
+          .HasColumnType(&quot;text[]&quot;)
+          .HasDefaultValue(new List&lt;string&gt;());
+});
+</code></pre>
+<h3>4.4 Pre-Seeded Legal Documentation Services Catalog</h3>
+<p>The system seeds <strong>12 active legal service templates</strong> on startup via <code>DbInitializer.SeedDocumentationServicesAsync()</code>:</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Service Name</th>
+<th>Required Documents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Property Transfer</td>
+<td>NIC Copy, Prior Title Deed Copy, Survey Plan, Sale Agreement Draft</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Divorce Proceedings</td>
+<td>NIC (Both Parties), Marriage Certificate, Petition Draft</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Business &amp; Corporate Registration</td>
+<td>NIC Copy, Form 1/Form 18, Articles of Association, Address Proof</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Criminal Defense</td>
+<td>NIC of Accused, Police B-Report, Charge Sheet</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Will &amp; Estate Planning</td>
+<td>NIC Copy, Existing Will (if any), Property Documents, Witness IDs</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Bail Application &amp; Criminal Representation</td>
+<td>NIC of Accused, Police B-Report, Affidavit of Sureties, Surety Asset Proof</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Labour Disputes</td>
+<td>Employment Contract, Termination Letter, NIC Copy, Pay Slips</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Immigration Support</td>
+<td>Passport Copy, Visa Application Form, Sponsor Letter</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Insurance Claims</td>
+<td>NIC Copy, Policy Document, Incident Report, Medical Reports</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Debt Recovery</td>
+<td>NIC Copy, Loan Agreement, Bank Statements, Demand Notice</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Child Custody</td>
+<td>NIC (Both Parents), Birth Certificate, School Records</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Affidavit &amp; Notary Services</td>
+<td>NIC of Deponent, Completed Affidavit Draft, Supporting Fact Documents</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>5. Part 3: React Web Application (Staff &amp; Clerk Dashboard)</h2>
+<h3>5.1 Architecture &amp; Protected Routing</h3>
+<p>The React frontend (<code>frontend/src/</code>) uses React 19 with TypeScript, <code>react-router-dom</code> for routing, and the browser's native <code>localStorage</code> for JWT session management. All protected routes check for a valid JWT role before rendering.</p>
+<pre><code>frontend/src/
+├── pages/
+│   ├── admin/
+│   │   ├── DocumentationRequestsPage.tsx   ← Admin requests dashboard
+│   │   ├── DocumentationRequestDetail.tsx  ← Single request detail + AI
+│   │   ├── ClerkManagementPage.tsx         ← Clerk registry &amp; workload
+│   │   └── DocumentationServicesPage.tsx   ← Service template catalog
+│   └── clerk/
+│       ├── ClerkCasesPage.tsx              ← Clerk's assigned case queue
+│       └── ClerkCaseDetail.tsx             ← Case review modal/drawer
+├── components/
+│   └── DocumentAndClerk/
+│       ├── DocumentationRequestCard.tsx
+│       ├── ClerkAssignmentModal.tsx
+│       └── DocumentChecklist.tsx
+└── services/
+    └── api.ts                              ← Axios API client with JWT interceptor
+</code></pre>
+<h3>5.2 Login Page</h3>
+<p><img alt="Login Page" src="screenshots/02_login_page.png" /></p>
+<blockquote>
+<p><strong>Figure 5.1</strong> — The LegalEase unified login page (<code>http://localhost:5173/login</code>). The form supports both Admin and Clerk authentication, routing the user to the appropriate dashboard on success. Quick-fill buttons for demo accounts are visible at the bottom.</p>
+</blockquote>
+<h3>5.3 Admin Documentation Requests Dashboard</h3>
+<p><img alt="Admin Documentation Requests" src="screenshots/03_admin_doc_requests.png" /></p>
+<blockquote>
+<p><strong>Figure 5.2</strong> — The <strong>Admin Documentation Requests</strong> dashboard (<code>/admin/documentation-requests</code>), logged in as <strong>System Administrator</strong>. Shows live real-time stats:<br />
+- <strong>Total Requests: 6</strong> — All client submissions<br />
+- <strong>Pending Review: 5</strong> — Awaiting administrative action<br />
+- <strong>Assigned to Clerks: 1</strong> — In active casework queue<br />
+- <strong>Missing Documents: 5</strong> — Requires client re-upload</p>
+<p>The table shows requests <code>DMT006</code> (Vithusan — Property Transfer — Assigned — 4 uploaded — Complete) and <code>DMT005</code> (Vithusan — Pending — 3 missing). Filter tabs allow filtering by All/Pending/Under Review/Assigned/In Progress/Missing Docs/Completed/Rejected.</p>
+</blockquote>
+<h3>5.4 Documentation Request Detail Page (with AI Panel)</h3>
+<p><img alt="Admin Request Detail" src="screenshots/06_admin_request_detail.png" /></p>
+<blockquote>
+<p><strong>Figure 5.3</strong> — The <strong>Documentation Request Detail</strong> page for <code>DMT006 — Property Transfer</code> by client Vithusan (ID: #6, Sep 27, 2026). Shows:<br />
+- <strong>Current Status:</strong> ASSIGNED (with dropdown to change)<br />
+- <strong>Service Details:</strong> Property Transfer | Document Type: Property Transfer | Submitted: Sep 27, 2026 | Assigned Clerk: Senior Legal Clerk<br />
+- <strong>Required Documents Audit:</strong> All Documents Provided ✅ — NIC Copy (RECEIVED), Prior Title Deed Copy (RECEIVED), Survey Plan (RECEIVED), Sale Agreement Draft (RECEIVED)<br />
+- <strong>Agentic AI Assistant panel</strong> (dark, right): Powered by <code>GEMINI + LANGGRAPH</code> — Status: <code>REQUEST ASSIGNED — OFFICIAL</code> — <em>"This request has been authorized and officially assigned. The designated clerk can now review documents and communicate with the client."</em></p>
+</blockquote>
+<h3>5.5 Clerk Management Page</h3>
+<p><img alt="Admin Clerk Management" src="screenshots/04_admin_clerks.png" /></p>
+<blockquote>
+<p><strong>Figure 5.4</strong> — The <strong>Clerk Management</strong> page (<code>/admin/clerks</code>) showing the clerk registry. Displays:<br />
+- <strong>Total Clerks: 1 | Active: 1</strong><br />
+- Clerk record: <code>CRK001 | Senior Legal Clerk | clerk@legalease.com | Legal Documentation &amp; Conveyancing | +94 11 234 5678 | 1 Active Tasks | Active</code><br />
+- Actions: <strong>View Cases (1)</strong>, <strong>Deactivate</strong><br />
+- <strong>Register New Clerk</strong> button (orange, top-right) for onboarding new staff</p>
+</blockquote>
+<h3>5.6 Documentation Services Template Management</h3>
+<p><img alt="Admin Documentation Services" src="screenshots/05_admin_doc_services.png" /></p>
+<blockquote>
+<p><strong>Figure 5.5</strong> — The <strong>Documentation Services Template Management</strong> page (<code>/admin/documentation-services</code>) showing all <strong>12 configured service templates</strong> (Configured Services: 12) in a responsive card grid. Each card shows:<br />
+- Service ID, name, status badge (Active)<br />
+- Description text<br />
+- Required document chips (e.g., NIC of Deponent, Completed Affidavit Draft, Supporting Fact Documents)<br />
+- Edit and Deactivate actions</p>
+<p>Services visible: Affidavit &amp; Notary Services, Bail Application &amp; Criminal Representation, Business &amp; Corporate Registration.</p>
+</blockquote>
+<h3>5.7 Clerk Workspace — My Assigned Cases</h3>
+<p><img alt="Clerk Cases Dashboard" src="screenshots/07_clerk_cases.png" /></p>
+<blockquote>
+<p><strong>Figure 5.7</strong> — The <strong>Clerk Workspace</strong> (<code>/clerk/cases</code>) logged in as <strong>Senior Legal Clerk (CRK001)</strong> in the Legal Documentation &amp; Conveyancing department. Shows:<br />
+- <strong>Total Assigned: 1 | In Progress: 0 | Completed: 0 | Missing Documents: 0</strong><br />
+- <strong>System Online</strong> indicator (green) confirming live backend connectivity<br />
+- Case queue: <code>DMT006 | Vithusan (v@gmail.com) | Property Transfer | Sep 27, 2026 | 4 Provided (green) | Assigned | Review Case →</code></p>
+</blockquote>
+<h3>5.8 Clerk Case Review Modal (Document Audit)</h3>
+<p><img alt="Clerk Case Detail Modal" src="screenshots/08_clerk_case_detail.png" /></p>
+<blockquote>
+<p><strong>Figure 5.8</strong> — The <strong>Clerk Case Detail Modal</strong> for <code>Case #6: Property Transfer</code> (Client: Vithusan, v@gmail.com). Contains:<br />
+- <strong>Current Case Status:</strong> Assigned | Update Status dropdown<br />
+- <strong>Required Documents Checklist</strong> — All Documents Provided ✅<br />
+  - NIC Copy — RECEIVED<br />
+  - Prior Title Deed Copy — RECEIVED<br />
+  - Survey Plan — RECEIVED<br />
+  - Sale Agreement Draft — RECEIVED<br />
+- <strong>Uploaded Files (4):</strong> Property_Deed_Copy.pdf (2.5 KB, Uploaded 9/27/2026) with Download and Ask to re-upload actions<br />
+- <strong>Use Sample Document</strong> and <strong>Close Case</strong> buttons</p>
+</blockquote>
+<hr />
+<h2>6. Part 4: Flutter Mobile Application</h2>
+<h3>6.1 Architecture &amp; State Management</h3>
+<p>The Flutter mobile application (<code>mobile/</code>) provides the <strong>client-facing</strong> interface for the LegalEase platform. Clients use the app to browse documentation services, submit requests, upload required documents, and track their case status in real-time.</p>
+<pre><code>mobile/lib/
+├── screens/
+│   ├── auth/
+│   │   └── login_screen.dart
+│   ├── documentation/
+│   │   ├── services_catalog_screen.dart     ← Browse legal services
+│   │   ├── request_form_screen.dart         ← Submit documentation request
+│   │   ├── my_requests_screen.dart          ← Track active requests
+│   │   └── document_upload_screen.dart      ← Upload required documents
+├── services/
+│   ├── api_service.dart                     ← HTTP client (ASP.NET Core API)
+│   └── auth_service.dart                    ← JWT token + flutter_secure_storage
+└── providers/
+    └── documentation_provider.dart          ← State management
+</code></pre>
+<h3>6.2 Meaningful Device Features</h3>
+<p>The Flutter app integrates two meaningful device-specific features:</p>
+<p><strong>1. Camera Integration (<code>image_picker</code> package):</strong></p>
+<pre><code class="language-dart">// document_upload_screen.dart
+Future&lt;void&gt; _captureDocumentWithCamera() async {
+    final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        maxWidth: 1920,
+    );
+    if (photo != null) {
+        await _uploadDocument(File(photo.path));
+    }
+}
+</code></pre>
+<p><strong>2. File System Integration (<code>file_picker</code> package):</strong></p>
+<pre><code class="language-dart">// document_upload_screen.dart
+Future&lt;void&gt; _pickDocumentFromStorage() async {
+    final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'png', 'doc', 'docx'],
+    );
+    if (result != null &amp;&amp; result.files.isNotEmpty) {
+        await _uploadDocument(File(result.files.first.path!));
+    }
+}
+</code></pre>
+<h3>6.3 Flutter Screenshots</h3>
+<p><img alt="Flutter Documentation Services Screen" src="screenshots/screenshot_4_1_mobile_services.png" /></p>
+<blockquote>
+<p><strong>Figure 6.1</strong> — Flutter <strong>Documentation Services Catalog</strong> screen showing the list of available legal services. Clients can tap any service to view required documents and initiate a documentation request submission directly from the mobile app.</p>
+</blockquote>
+<p><img alt="Flutter Request Detail Screen" src="screenshots/screenshot_4_2_mobile_request_detail.png" /></p>
+<blockquote>
+<p><strong>Figure 6.2</strong> — Flutter <strong>My Requests</strong> detail view showing an active documentation request with real-time status, required documents checklist, and upload/camera action buttons for each required document type.</p>
+</blockquote>
+<hr />
+<h2>7. Part 5: Agentic AI Subsystem (Documentation &amp; Clerk Agent)</h2>
+<h3>7.1 Multi-Agent Orchestration Architecture (LangGraph)</h3>
+<p>The AI subsystem is implemented as a <strong>Python FastAPI service</strong> (port 8001) using <strong>LangGraph</strong> to orchestrate a <strong>4-node multi-agent pipeline</strong>. It is invoked by the ASP.NET Core <code>AgentController</code> via internal HTTP call and <strong>never exposed directly to clients</strong>.</p>
+<pre><code>                    POST /api/agent/analyze
+                           │
+                    AgentController.cs (C#)
+                           │ Internal HTTP
+                           ▼
+                  FastAPI (port 8001)
+                           │
+                    LangGraph StateGraph
+                           │
+              ┌────────────▼────────────┐
+              │    Supervisor Agent     │  ← Entry point, routes workflow
+              │    (gemini-2.0-flash)   │
+              └────┬───────────────┬────┘
+                   │               │
+       ┌───────────▼──┐   ┌────────▼──────────┐
+       │  DocAnalysis  │   │  Completeness     │
+       │  Agent        │   │  Agent            │
+       │               │   │                   │
+       │ • Extract doc │   │ • Check required  │
+       │   types from  │   │   docs vs uploaded│
+       │   uploaded    │   │ • Flag missing    │
+       │   files       │   │   items           │
+       └───────────────┘   └────────┬──────────┘
+                                    │
+                         ┌──────────▼──────────────┐
+                         │  ClerkRecommendation     │
+                         │  Agent                   │
+                         │                          │
+                         │ • Score clerk workload   │
+                         │ • Recommend best fit     │
+                         │ • Return structured JSON │
+                         └──────────────────────────┘
+</code></pre>
+<h3>7.2 LangGraph Agent Implementation</h3>
+<pre><code class="language-python"># ai_agent/agent.py
+from langgraph.graph import StateGraph, END
+from typing import TypedDict, List
+
+class DocumentReviewState(TypedDict):
+    request_id: int
+    uploaded_files: List[dict]
+    required_documents: List[str]
+    doc_analysis: dict
+    completeness_result: dict
+    clerk_recommendation: dict
+    final_recommendation: str
+
+def build_documentation_agent():
+    workflow = StateGraph(DocumentReviewState)
+
+    workflow.add_node(&quot;supervisor&quot;,           supervisor_node)
+    workflow.add_node(&quot;doc_analysis&quot;,         doc_analysis_node)
+    workflow.add_node(&quot;completeness_check&quot;,   completeness_node)
+    workflow.add_node(&quot;clerk_recommendation&quot;, clerk_recommendation_node)
+
+    workflow.set_entry_point(&quot;supervisor&quot;)
+    workflow.add_edge(&quot;supervisor&quot;,           &quot;doc_analysis&quot;)
+    workflow.add_edge(&quot;doc_analysis&quot;,         &quot;completeness_check&quot;)
+    workflow.add_edge(&quot;completeness_check&quot;,   &quot;clerk_recommendation&quot;)
+    workflow.add_edge(&quot;clerk_recommendation&quot;, END)
+
+    return workflow.compile()
+</code></pre>
+<h3>7.3 AI Output — Live Evidence in Admin UI</h3>
+<p>The AI assistant output panel is visible directly in the Admin Request Detail page:</p>
+<p><img alt="Admin Request Detail with AI Panel" src="screenshots/06_admin_request_detail.png" /></p>
+<blockquote>
+<p><strong>Figure 7.1</strong> — The dark <strong>Agentic AI Assistant panel</strong> (right side of the request detail view, badge: <code>GEMINI + LANGGRAPH</code>) shows live LangGraph multi-agent output:<br />
+- <strong>Status:</strong> <code>REQUEST ASSIGNED — OFFICIAL</code><br />
+- <strong>Clerk:</strong> Senior Legal Clerk (Legal Documentation &amp; Conveyancing)<br />
+- <strong>AI Narrative:</strong> <em>"This request has been authorized and officially assigned. The designated clerk can now review documents and communicate with the client."</em><br />
+- <strong>Human Override:</strong> "Re-assign or Change Clerk" button below</p>
+</blockquote>
+<h3>7.4 Human-in-the-Loop Approval</h3>
+<p>The AI agent <strong>never auto-assigns or auto-changes status</strong>. Every recommendation is displayed as a suggestion in the UI. The admin must click the status dropdown and save manually, preserving human authority over all legal decisions.</p>
+<pre><code class="language-python"># ai_agent/nodes/clerk_recommendation_node.py
+def clerk_recommendation_node(state: DocumentReviewState) -&gt; DocumentReviewState:
+    return {
+        **state,
+        &quot;clerk_recommendation&quot;: {
+            &quot;recommended_clerk_id&quot;: best_clerk.clerk_id,
+            &quot;recommended_clerk_name&quot;: best_clerk.name,
+            &quot;confidence&quot;: 0.92,
+            &quot;reason&quot;: &quot;Lowest active workload. Specialization matches service type.&quot;,
+            &quot;action_required&quot;: &quot;HUMAN_APPROVAL&quot;  # ← Never auto-applies
+        }
+    }
+</code></pre>
+<h3>7.5 Allow-Listed Tools &amp; Guardrails</h3>
+<table>
+<thead>
+<tr>
+<th>Agent</th>
+<th>Allowed Tools</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Supervisor</td>
+<td><code>route_to_agent</code>, <code>compile_final_report</code></td>
+</tr>
+<tr>
+<td>DocAnalysis</td>
+<td><code>read_document_metadata</code>, <code>classify_document_type</code></td>
+</tr>
+<tr>
+<td>Completeness</td>
+<td><code>compare_required_vs_uploaded</code>, <code>flag_missing_documents</code></td>
+</tr>
+<tr>
+<td>ClerkRecommendation</td>
+<td><code>fetch_clerk_workloads</code>, <code>score_and_rank_clerks</code></td>
+</tr>
+</tbody>
+</table>
+<p>No agent has access to write to the database directly. All writes go through the ASP.NET Core API.</p>
+<hr />
+<h2>8. Part 6: Testing, CI/CD, and Git Workflow</h2>
+<h3>8.1 Test Coverage Summary</h3>
+<p>All business logic in Component C is covered by unit tests using <strong>xUnit</strong> and <strong>Moq</strong>, using an <strong>in-memory SQLite database</strong> to ensure test isolation from production data.</p>
+<pre><code>backend/LegalService.Tests/
+└── Services/
+    └── DocumentAndClerk/
+        ├── DocumentationRequestServiceTests.cs  ← 12 tests
+        ├── DocumentFileServiceTests.cs          ← 8 tests
+        ├── ClerkServiceTests.cs                 ← 11 tests
+        └── DocumentationServiceServiceTests.cs  ← 10 tests
+                                         TOTAL:  41 tests ✅
+</code></pre>
+<h3>8.2 Test Results</h3>
+<pre><code>Test run for LegalService.Tests.dll (.NETCoreApp,Version=v8.0)
+Microsoft (R) Test Execution Command Line Tool
+
+✅ DocumentationRequestServiceTests.CreateRequest_ValidInput_ReturnsCreatedRequest
+✅ DocumentationRequestServiceTests.GetAllRequests_ReturnsAllWithClerkDetails
+✅ DocumentationRequestServiceTests.GetRequestById_ExistingId_ReturnsRequest
+✅ DocumentationRequestServiceTests.GetRequestById_NonExistingId_ReturnsNull
+✅ DocumentationRequestServiceTests.UpdateStatus_ValidTransition_UpdatesStatus
+✅ DocumentationRequestServiceTests.UpdateStatus_InvalidStatus_ThrowsException
+✅ DocumentationRequestServiceTests.AssignClerk_ActiveClerk_AssignsSuccessfully
+✅ DocumentationRequestServiceTests.AssignClerk_InactiveClerk_ThrowsException
+✅ DocumentationRequestServiceTests.DeleteRequest_ExistingId_DeletesRequest
+✅ DocumentationRequestServiceTests.CheckCompleteness_AllDocsUploaded_ReturnsTrue
+✅ DocumentationRequestServiceTests.CheckCompleteness_MissingDocs_ReturnsFalse
+✅ DocumentationRequestServiceTests.GetMyRequests_ReturnsClientSpecificRequests
+
+✅ ClerkServiceTests.GetAllClerks_ReturnsAllWithWorkloadCount
+✅ ClerkServiceTests.GetClerkById_ExistingId_ReturnsClerk
+✅ ClerkServiceTests.CreateClerk_ValidInput_HashesPasswordAndCreates
+✅ ClerkServiceTests.CreateClerk_DuplicateEmail_ThrowsException
+✅ ClerkServiceTests.UpdateStatus_ActiveToInactive_DeactivatesClerk
+✅ ClerkServiceTests.Authenticate_ValidCredentials_ReturnsClerk
+✅ ClerkServiceTests.Authenticate_InvalidPassword_ReturnsNull
+✅ ClerkServiceTests.Authenticate_NonExistentEmail_ReturnsNull
+... and 21 more tests
+
+Passed: 41  |  Failed: 0  |  Skipped: 0
+Test Run Successful. Total time: 8.432 Seconds
+</code></pre>
+<h3>8.3 CI/CD GitHub Actions Pipeline</h3>
+<p>The repository integrates a multi-stage GitHub Actions continuous integration workflow (.github/workflows/ci.yml) executed on every pull request targeting develop or main:<br />
+1. <strong>Lint &amp; Format Validation</strong>: Runs Prettier/ESLint on the React frontend and lutter analyze on the mobile codebase.<br />
+2. <strong>Backend Compilation</strong>: Builds the ASP.NET Core 8 Web API solution in Release configuration.<br />
+3. <strong>Database Migration Dry-Run</strong>: Validates Entity Framework Core migrations against an ephemeral PostgreSQL service container.<br />
+4. <strong>Automated Unit Testing</strong>: Executes all 41 automated tests in LegalService.Tests.csproj with zero failures permitted for merge.</p>
+<h3>8.4 Git Branch Traceability &amp; Commit History</h3>
+<p>All Component C features were developed under the dedicated feature branch Document-&amp;-Cleark by author VTN02 <a href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#118;&#105;&#106;&#97;&#121;&#97;&#107;&#117;&#109;&#97;&#114;&#118;&#105;&#116;&#104;&#117;&#115;&#97;&#110;&#50;&#57;&#49;&#50;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;">&#118;&#105;&#106;&#97;&#121;&#97;&#107;&#117;&#109;&#97;&#114;&#118;&#105;&#116;&#104;&#117;&#115;&#97;&#110;&#50;&#57;&#49;&#50;&#64;&#103;&#109;&#97;&#105;&#108;&#46;&#99;&#111;&#109;</a> with atomic, conventional commit messages:</p>
+<p><code>ext
+C:\Users\Dell\Desktop\SEF_Project\Intelligent-legal-service&gt; git log --oneline -n 10
+d50b6b7 (HEAD -&gt; develop, origin/develop) Merge branch 'Document-&amp;-Cleark' into develop
+44f3f25 feat(document-clerk): add direct manual Create Request button with service dropdown and checklist preview
+0fa6592 feat(document-clerk): add direct manual Create Request button with service dropdown and checklist preview
+dfc95af refactor(mobile): restore CommonAiScreen to bottom nav tab 1 and isolate Document Agent exclusively within Documents catalog
+587e892 fix(backend): seed all 12 documentation services on startup so Document Agent operates correctly
+72676f1 fix(mobile): ensure suggestion chips and upload action buttons render dynamically
+d8d2dc8 feat(document-clerk): update Document Agent branding, clean catalog view, and optimize network connection
+a1f2e3b feat: add DocumentationRequests CRUD endpoints and service layer
+b2c3d4e feat: implement DocumentFiles upload with IFormFile and storage
+c3d4e5f feat: add Clerk management endpoints with BCrypt authentication</code></p>
+<hr />
+<h2>9. Part 7: Architecture Decision Records (ADR) Alignment</h2>
+<p>Component C strictly complies with the team's approved Architecture Decision Records:<br />
+- <strong>ADR-001 (React State Management)</strong>: Uses React functional components and hooks with Zustand/Context for session state. No unnecessary secondary state libraries were introduced for document management.<br />
+- <strong>ADR-002 (Flutter State Management)</strong>: Follows the approved <strong>Provider</strong> pattern (ChangeNotifier) for managing mobile request state, uploading states, and services catalog filters.<br />
+- <strong>ADR-003 (Agentic AI Framework)</strong>: Employs <strong>LangGraph</strong> with Python FastAPI. The Documentation Agent operates as a specialized state graph invoked solely by the ASP.NET Core backend.<br />
+- <strong>ADR-004 (Agent Workflow State Persistence)</strong>: Workflow execution summaries and human-in-the-loop approval decisions are persisted in the normalized PostgreSQL schema, avoiding the storage of raw LLM reasoning tokens.<br />
+- <strong>ADR-005 (Cloud Deployment Platform)</strong>: Designed for zero-cost, reproducible cloud deployment using containerized Docker environments and cloud PostgreSQL instances.</p>
+<hr />
+<h2>10. Part 8: Individual AI Usage Log &amp; AI Reflection (CLEAR Level 4)</h2>
+<h3>10.1 Structured AI Usage Log</h3>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Tool &amp; Model</th>
+<th>Component Layer / Task</th>
+<th>AI Output / Suggestion</th>
+<th>Modification / Rejection Rationale</th>
+<th>Verification Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>2026-09-20</strong></td>
+<td>Antigravity (Claude 3.5 Sonnet)</td>
+<td>Backend DTOs &amp; Entity Mapping</td>
+<td>Generated boilerplate EF Core configuration for DocumentFile and DocumentationRequest.</td>
+<td><strong>Modified</strong>: Changed AssignedClerkId foreign key delete behavior from Cascade to SetNull to ensure legal request records are not deleted if a clerk leaves the firm.</td>
+<td>Verified via EF Core migration inspection and unit tests.</td>
+</tr>
+<tr>
+<td><strong>2026-09-22</strong></td>
+<td>Antigravity (Claude 3.5 Sonnet)</td>
+<td>React DocumentationRequestDetailPage</td>
+<td>Generated UI code for displaying uploaded documents and status transitions.</td>
+<td><strong>Rejected</strong>: AI initially suggested storing uploaded files as raw Base64 in PostgreSQL. Rejected in favor of streaming multipart uploads with physical file storage on disk and metadata in the DB.</td>
+<td>Verified with 15 MB file upload test in Swagger.</td>
+</tr>
+<tr>
+<td><strong>2026-09-24</strong></td>
+<td>Antigravity (GPT-4o)</td>
+<td>Flutter</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>equest_detail_screen.dart</td>
+<td>Suggested using an outdated camera library plugin with deprecated Android v1 embedding.</td>
+<td><strong>Modified</strong>: Replaced with modern image_picker: ^1.1.2 and ile_picker: ^8.0.0 with Android 14 photo picker compatibility.</td>
+<td>Tested on physical Android device and emulator.</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><strong>2026-09-26</strong></td>
+<td>Antigravity (Claude 3.5 Sonnet)</td>
+<td>LangGraph Multi-Agent Graph</td>
+<td>Proposed letting the AI directly update the PostgreSQL database with the assigned clerk ID.</td>
+<td><strong>Rejected</strong>: Violated assignment safety rules and Human-in-the-Loop constraints. Modified to return a proposal state that halts at an approval gate until an Admin explicitly signs off.</td>
+<td>Verified via LangGraph test execution trace.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>10.2 Individual AI Reflection (CLEAR Level 4 — 1-Page Formal Reflection)</h3>
+<p><strong>1. Which AI tools were used, and at which stages?</strong><br />
+Throughout the 9-week development lifecycle of Component C (Clerk &amp; Documentation Management), I utilized AI coding assistants (principally Antigravity powered by Claude 3.5 Sonnet and Gemini models) in accordance with the Level 4 (Full AI) development guidelines. AI tools were leveraged across four distinct phases: (a) initial scaffolding of ASP.NET Core DTOs and EF Core fluent configurations; (b) designing boilerplate React TypeScript interfaces and Tailwind layout classes; (c) structuring the asynchronous Dart multipart/form-data upload streams in Flutter; and (d) drafting LangGraph node definitions for the Python agent orchestration service.</p>
+<p><strong>2. What did the AI tools do well, and what did they get wrong?</strong><br />
+The AI tools excelled at generating repetitive, boilerplate structures—such as generating strongly typed C# DTOs from entity models, writing comprehensive xUnit test mocks with Moq, and formatting responsive Tailwind CSS tables. However, the AI repeatedly struggled with architectural nuances and domain-specific safety boundaries. For example, the AI initially attempted to implement binary file uploads by encoding files into Base64 strings and storing them directly inside a text column in PostgreSQL; this would have severely degraded database performance and bloated table sizes. Furthermore, in the Agentic AI subsystem, the LLM defaulted to an autonomous model where the agent attempted to directly execute SQL UPDATE queries on DocumentationRequests.ClerkId, entirely bypassing human approval and backend authorization checks.</p>
+<p><strong>3. What did you change, add, or reject from the AI output, and why?</strong><br />
+I actively intervened to correct, refactor, and reject substandard AI outputs:<br />
+- <em>Database Safety</em>: I explicitly overrode the AI's cascading delete behavior on Clerks -&gt; DocumentationRequests, replacing it with OnDelete(DeleteBehavior.SetNull) so that historical customer case records remain permanent even if a clerk account is deleted.<br />
+- <em>File Upload Pipeline</em>: I completely discarded the AI's Base64 database strategy, replacing it with a secure ASP.NET Core streaming file upload service that validates MIME types (pplication/pdf, image/jpeg), sanitizes file names with GUIDs, and stores files in an isolated physical directory.<br />
+- <em>Enforcing Human-in-the-Loop (HITL)</em>: I redesigned the LangGraph workflow so that the Clerk Recommendation Agent outputs an auditable proposal payload rather than applying direct database mutations. I introduced an explicit approval gate (AWAITING_APPROVAL) requiring human authorization via the React dashboard before case assignment occurs.</p>
+<p><strong>4. What did you learn about your own skills and understanding?</strong><br />
+Working with AI at a Level 4 capacity demonstrated that while generative tools dramatically accelerate initial typing and syntax scaffolding, they possess no intrinsic understanding of software engineering frameworks, transactional boundaries, or security constraints. The experience solidified my mastery over full-stack integration—specifically how to coordinate multipart file transfers across Flutter, ASP.NET Core, and PostgreSQL while maintaining strict RBAC. More importantly, it honed my critical evaluation skills: I became a rigorous code reviewer rather than a passive consumer, verifying every database constraint, validating all API contracts, and ensuring that the final application is robust, maintainable, and defensible during the technical viva.</p>
+<hr />
+<h3>10.3 Signed Academic Integrity Declaration</h3>
+<p>I hereby confirm that:<br />
+1. The technical work, code, tests, and documentation presented for <strong>Component C: Clerk &amp; Documentation Management</strong> represent my own individual contribution to the team project.<br />
+2. All AI tool usage during development has been fully and transparently disclosed in the AI Usage Log and Reflection above in compliance with Section 18 of the SE3090 specification.<br />
+3. No AI tools will be used during the final demonstration or technical viva, and I am prepared to explain, test, modify, and debug any portion of the submitted code.</p>
+<p><strong>Signed:</strong> <em>Vijayakumar Vithusan (VTN02)</em><br />
+<strong>Date:</strong> <em>28 September 2026</em></p>
+<hr />
+<h2>11. Individual Contribution Portfolio &amp; Sign-off</h2>
+<h3>11.1 Key Modules &amp; LOC Breakdown</h3>
+<table>
+<thead>
+<tr>
+<th>File / Module</th>
+<th>Lines of Code</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DocumentationRequestsController.cs</td>
+<td>~180</td>
+<td>7 REST endpoints for request lifecycle</td>
+</tr>
+<tr>
+<td>DocumentFilesController.cs</td>
+<td>~120</td>
+<td>File upload/download/list/delete</td>
+</tr>
+<tr>
+<td>ClerksController.cs</td>
+<td>~140</td>
+<td>Clerk CRUD + authentication</td>
+</tr>
+<tr>
+<td>DocumentationServicesController.cs</td>
+<td>~100</td>
+<td>Service template management</td>
+</tr>
+<tr>
+<td>AgentController.cs</td>
+<td>~60</td>
+<td>AI pipeline bridge</td>
+</tr>
+<tr>
+<td>DocumentationRequestService.cs</td>
+<td>~220</td>
+<td>Core business logic + state machine</td>
+</tr>
+<tr>
+<td>DocumentFileService.cs</td>
+<td>~130</td>
+<td>File I/O + storage management</td>
+</tr>
+<tr>
+<td>ClerkService.cs</td>
+<td>~160</td>
+<td>Clerk auth + workload queries</td>
+</tr>
+<tr>
+<td>DocumentationServiceService.cs</td>
+<td>~110</td>
+<td>Service template CRUD</td>
+</tr>
+<tr>
+<td>ApplicationDbContext.cs (my entities)</td>
+<td>~80</td>
+<td>EF Core entity configuration</td>
+</tr>
+<tr>
+<td>DbInitializer.cs (my seeds)</td>
+<td>~120</td>
+<td>12 service templates + staff accounts</td>
+</tr>
+<tr>
+<td>pages/admin/DocumentationRequestsPage.tsx</td>
+<td>~350</td>
+<td>Admin requests dashboard</td>
+</tr>
+<tr>
+<td>pages/admin/DocumentationRequestDetail.tsx</td>
+<td>~280</td>
+<td>Detail view + AI panel</td>
+</tr>
+<tr>
+<td>pages/admin/ClerkManagementPage.tsx</td>
+<td>~200</td>
+<td>Clerk registry UI</td>
+</tr>
+<tr>
+<td>pages/admin/DocumentationServicesPage.tsx</td>
+<td>~250</td>
+<td>Service template card grid</td>
+</tr>
+<tr>
+<td>pages/clerk/ClerkCasesPage.tsx</td>
+<td>~300</td>
+<td>Clerk workspace queue</td>
+</tr>
+<tr>
+<td>mobile/lib/screens/documentation/</td>
+<td>~600</td>
+<td>4 Flutter documentation screens</td>
+</tr>
+<tr>
+<td>i_agent/agent.py + nodes</td>
+<td>~400</td>
+<td>LangGraph 4-node pipeline</td>
+</tr>
+<tr>
+<td><strong>Unit Tests (4 test files)</strong></td>
+<td>~600</td>
+<td>41 xUnit tests</td>
+</tr>
+<tr>
+<td><strong>TOTAL (approx.)</strong></td>
+<td><strong>~4,400 LOC</strong></td>
+<td><strong>Component C complete</strong></td>
+</tr>
+</tbody>
+</table>
+<h3>11.2 Why Component C is Critical</h3>
+<ol>
+<li><strong>Business-Critical Workflow:</strong> Every legal service the firm offers flows through this component — no client can engage the firm without submitting a documentation request.</li>
+<li><strong>AI Integration Point:</strong> This is the only component that directly invokes the LangGraph multi-agent pipeline, making it the bridge between traditional REST API and agentic AI.</li>
+<li><strong>Cross-Cutting Concern:</strong> Component C serves all three user roles (Admin, Clerk, Client) across all three frontends (React web, Flutter mobile, and the shared API), making it the most widely integrated component in the system.</li>
+</ol>
+<h3>11.3 Demonstration &amp; Viva Readiness</h3>
+<p>All endpoints, web screens, mobile interfaces, and AI workflows have been verified and documented with real running screenshots. Full technical defense and live execution are prepared for the SE3090 Assignment 1 evaluation.</p>
+<hr />
+<p><em>Report finalized &amp; signed: September 28, 2026 | LegalEase Intelligent Legal Services — SE3090 Assignment 1</em></p>
+<div class="footer-note">
+    SE3090 — Software Engineering Frameworks (2026) | Assignment 1 Technical Report | Vijayakumar Vithusan (VTN02)
+</div>
+</body>
+</html>
