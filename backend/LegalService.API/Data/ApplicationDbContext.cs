@@ -49,6 +49,12 @@ public class ApplicationDbContext : DbContext
     public DbSet<HiringSuggestionWorkflow> HiringSuggestionWorkflows { get; set; }
 
     public DbSet<LegalDocument> LegalDocuments { get; set; }
+
+    public DbSet<LegalIntelligenceDocument> LegalIntelligenceDocuments { get; set; }
+
+    public DbSet<LegalIntelligenceCourtCase> LegalIntelligenceCourtCases { get; set; }
+
+    public DbSet<LegalIntelligenceIngestionRun> LegalIntelligenceIngestionRuns { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -563,6 +569,182 @@ public class ApplicationDbContext : DbContext
     entity.HasIndex(x => x.ExternalId)
         .IsUnique();
 });
+
+    // ==========================================
+    // LEGAL INTELLIGENCE CONFIG
+    // ==========================================
+
+    modelBuilder.Entity<LegalIntelligenceDocument>(entity =>
+    {
+        entity.ToTable("LegalIntelligenceDocuments");
+
+        entity.HasKey(x => x.Id);
+
+        entity.Property(x => x.Id)
+            .ValueGeneratedOnAdd();
+
+        entity.Property(x => x.ExternalId)
+            .HasMaxLength(255);
+
+        entity.Property(x => x.Title)
+            .IsRequired();
+
+        entity.Property(x => x.DocumentType)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        entity.Property(x => x.ActNumber)
+            .HasMaxLength(100);
+
+        entity.Property(x => x.PublishedDate)
+            .HasColumnType("date");
+
+        entity.Property(x => x.SourceName)
+            .IsRequired()
+            .HasMaxLength(255);
+
+        entity.Property(x => x.SourceDomain)
+            .HasMaxLength(255);
+
+        entity.Property(x => x.SourceTrustLevel)
+            .IsRequired()
+            .HasMaxLength(50)
+            .HasDefaultValue("OFFICIAL");
+
+        entity.Property(x => x.Metadata)
+            .HasColumnType("jsonb")
+            .HasDefaultValue("{}");
+
+        entity.Property(x => x.IsVerified)
+            .HasDefaultValue(false);
+
+        entity.Property(x => x.IsPublished)
+            .HasDefaultValue(true);
+
+        entity.Property(x => x.CreatedAt)
+            .HasDefaultValueSql("NOW()");
+
+        entity.Property(x => x.UpdatedAt)
+            .HasDefaultValueSql("NOW()");
+
+        entity.HasIndex(x => x.ExternalId)
+            .IsUnique()
+            .HasFilter("\"ExternalId\" IS NOT NULL");
+    });
+
+
+    modelBuilder.Entity<LegalIntelligenceCourtCase>(entity =>
+    {
+        entity.ToTable("LegalIntelligenceCourtCases");
+
+        entity.HasKey(x => x.Id);
+
+        entity.Property(x => x.Id)
+            .ValueGeneratedOnAdd();
+
+        entity.Property(x => x.ExternalId)
+            .HasMaxLength(255);
+
+        entity.Property(x => x.CaseNumber)
+            .IsRequired()
+            .HasMaxLength(255);
+
+        entity.Property(x => x.Title)
+            .IsRequired();
+
+        entity.Property(x => x.DecisionType)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        entity.Property(x => x.Court)
+            .IsRequired()
+            .HasMaxLength(255);
+
+        entity.Property(x => x.DecisionDate)
+            .HasColumnType("date");
+
+        entity.Property(x => x.SourceName)
+            .IsRequired()
+            .HasMaxLength(255)
+            .HasDefaultValue("Court of Appeal of Sri Lanka");
+
+        entity.Property(x => x.SourceDomain)
+            .HasMaxLength(255);
+
+        entity.Property(x => x.SourceTrustLevel)
+            .IsRequired()
+            .HasMaxLength(50)
+            .HasDefaultValue("OFFICIAL");
+
+        entity.Property(x => x.Metadata)
+            .HasColumnType("jsonb")
+            .HasDefaultValue("{}");
+
+        entity.Property(x => x.IsVerified)
+            .HasDefaultValue(false);
+
+        entity.Property(x => x.IsPublished)
+            .HasDefaultValue(true);
+
+        entity.Property(x => x.CreatedAt)
+            .HasDefaultValueSql("NOW()");
+
+        entity.Property(x => x.UpdatedAt)
+            .HasDefaultValueSql("NOW()");
+
+        entity.HasIndex(
+            x => new
+            {
+                x.Court,
+                x.DecisionType,
+                x.CaseNumber,
+                x.DecisionDate
+            })
+            .IsUnique();
+    });
+
+
+    modelBuilder.Entity<LegalIntelligenceIngestionRun>(entity =>
+    {
+        entity.ToTable("LegalIntelligenceIngestionRuns");
+
+        entity.HasKey(x => x.Id);
+
+        entity.Property(x => x.Id)
+            .ValueGeneratedOnAdd();
+
+        entity.Property(x => x.SourceType)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        entity.Property(x => x.SourceName)
+            .HasMaxLength(255);
+
+        entity.Property(x => x.StartedAt)
+            .HasDefaultValueSql("NOW()");
+
+        entity.Property(x => x.DiscoveredCount)
+            .HasDefaultValue(0);
+
+        entity.Property(x => x.SavedCount)
+            .HasDefaultValue(0);
+
+        entity.Property(x => x.RejectedCount)
+            .HasDefaultValue(0);
+
+        entity.Property(x => x.Status)
+            .IsRequired()
+            .HasMaxLength(50)
+            .HasDefaultValue("RUNNING");
+
+        entity.Property(x => x.Metadata)
+            .HasColumnType("jsonb")
+            .HasDefaultValue("{}");
+
+        entity.HasIndex(x => x.SourceType);
+
+        entity.HasIndex(x => x.StartedAt);
+    });
 
         // ==========================================
         // 9. AUDIT CONFIG

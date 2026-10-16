@@ -373,6 +373,61 @@ class BackendClient:
         body = {"reason": reason or "Cancelled via AI Scheduling Assistant"}
         return await self._post(f"/api/appointments/{appointment_id}/cancel", body=body)
 
+
+
+
+        # ================================================================
+    # Legal Intelligence
+    # ================================================================
+
+    async def get_legal_intelligence_documents(
+        self,
+    ) -> list[dict]:
+        return await self._get(
+            "/api/legal-intelligence-data/documents"
+        )
+
+    async def upsert_legal_intelligence_document(
+        self,
+        document: dict,
+    ) -> dict:
+        return await self._post(
+            "/api/legal-intelligence-data/documents",
+            body=document,
+        )
+
+    async def get_legal_intelligence_court_cases(
+        self,
+    ) -> list[dict]:
+        return await self._get(
+            "/api/legal-intelligence-data/court-cases"
+        )
+
+    async def upsert_legal_intelligence_court_case(
+        self,
+        court_case: dict,
+    ) -> dict:
+        return await self._post(
+            "/api/legal-intelligence-data/court-cases",
+            body=court_case,
+        )
+
+    async def get_legal_intelligence_ingestion_runs(
+        self,
+    ) -> list[dict]:
+        return await self._get(
+            "/api/legal-intelligence-data/ingestion-runs"
+        )
+
+    async def create_legal_intelligence_ingestion_run(
+        self,
+        ingestion_run: dict,
+    ) -> dict:
+        return await self._post(
+            "/api/legal-intelligence-data/ingestion-runs",
+            body=ingestion_run,
+        )
+
     # ================================================================
     # Lifecycle
     # ================================================================
