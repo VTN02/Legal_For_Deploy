@@ -17,7 +17,7 @@ namespace LegalService.API.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.29")
+                .HasAnnotation("ProductVersion", "9.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -473,7 +473,7 @@ namespace LegalService.API.Migrations
 
                     b.ToTable("DocumentationServices");
 
-               b.HasData(
+                    b.HasData(
                         new
                         {
                             ServiceId = 1,
@@ -492,15 +492,15 @@ namespace LegalService.API.Migrations
                             Name = "Affidavit & Notary Services",
                             RequiredDocuments = "[\"NIC\",\"Completed Affidavit Draft\",\"Witness Details\"]"
                         },
-                    new
-                    {
-                        ServiceId = 3,
-                        CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3880),
-                        Description = "Drafting General or Special Power of Attorney documents.",
-                        IsActive = true,
-                        Name = "Power of Attorney Drafting",
-                        RequiredDocuments = "[\"NIC of Grantor\",\"NIC of Grantee\",\"Scope of Authority Document\"]"
-                    });
+                        new
+                        {
+                            ServiceId = 3,
+                            CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3880),
+                            Description = "Drafting General or Special Power of Attorney documents.",
+                            IsActive = true,
+                            Name = "Power of Attorney Drafting",
+                            RequiredDocuments = "[\"NIC of Grantor\",\"NIC of Grantee\",\"Scope of Authority Document\"]"
+                        });
                 });
 
             modelBuilder.Entity("LegalService.API.Models.Entities.ExecutionSummary", b =>
@@ -828,161 +828,410 @@ namespace LegalService.API.Migrations
                     b.ToTable("LawyerSpecializations");
                 });
 
+            modelBuilder.Entity("LegalService.API.Models.Entities.LawyerUnavailability", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
-modelBuilder.Entity("LegalService.API.Models.Entities.LawyerUnavailability", b =>
-{
-    b.Property<Guid>("Id")
-        .ValueGeneratedOnAdd()
-        .HasColumnType("uuid");
+                    b.Property<DateTime>("EndDateTime")
+                        .HasColumnType("timestamp without time zone");
 
-    b.Property<DateTime>("CreatedAt")
-        .HasColumnType("timestamp with time zone");
+                    b.Property<bool>("IsFullDay")
+                        .HasColumnType("boolean");
 
-    b.Property<DateTime>("EndDateTime")
-        .HasColumnType("timestamp without time zone");
+                    b.Property<Guid>("LawyerId")
+                        .HasColumnType("uuid");
 
-    b.Property<bool>("IsFullDay")
-        .HasColumnType("boolean");
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
 
-    b.Property<Guid>("LawyerId")
-        .HasColumnType("uuid");
+                    b.Property<DateTime>("StartDateTime")
+                        .HasColumnType("timestamp without time zone");
 
-    b.Property<string>("Reason")
-        .IsRequired()
-        .HasMaxLength(300)
-        .HasColumnType("character varying(300)");
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
-    b.Property<DateTime>("StartDateTime")
-        .HasColumnType("timestamp without time zone");
+                    b.HasKey("Id");
 
-    b.Property<DateTime?>("UpdatedAt")
-        .HasColumnType("timestamp with time zone");
+                    b.HasIndex("LawyerId", "StartDateTime", "EndDateTime");
 
-    b.HasKey("Id");
+                    b.ToTable("LawyerUnavailabilities", t =>
+                        {
+                            t.HasCheckConstraint("CK_Unavailability_Time", "\"StartDateTime\" < \"EndDateTime\"");
+                        });
+                });
 
-    b.HasIndex("LawyerId", "StartDateTime", "EndDateTime");
+            modelBuilder.Entity("LegalService.API.Models.Entities.LawyerWorkingSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
-    b.ToTable("LawyerUnavailabilities", t =>
-    {
-        t.HasCheckConstraint(
-            "CK_Unavailability_Time",
-            "\"StartDateTime\" < \"EndDateTime\"");
-    });
-});
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
-modelBuilder.Entity("LegalService.API.Models.Entities.LawyerWorkingSchedule", b =>
-{
-    b.Property<Guid>("Id")
-        .ValueGeneratedOnAdd()
-        .HasColumnType("uuid");
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("integer");
 
-    b.Property<DateTime>("CreatedAt")
-        .HasColumnType("timestamp with time zone");
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time without time zone");
 
-    b.Property<int>("DayOfWeek")
-        .HasColumnType("integer");
+                    b.Property<bool>("IsWorkingDay")
+                        .HasColumnType("boolean");
 
-    b.Property<TimeOnly>("EndTime")
-        .HasColumnType("time without time zone");
+                    b.Property<Guid>("LawyerId")
+                        .HasColumnType("uuid");
 
-    b.Property<bool>("IsWorkingDay")
-        .HasColumnType("boolean");
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone");
 
-    b.Property<Guid>("LawyerId")
-        .HasColumnType("uuid");
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
-    b.Property<TimeOnly>("StartTime")
-        .HasColumnType("time without time zone");
+                    b.HasKey("Id");
 
-    b.Property<DateTime?>("UpdatedAt")
-        .HasColumnType("timestamp with time zone");
+                    b.HasIndex("LawyerId", "DayOfWeek")
+                        .IsUnique();
 
-    b.HasKey("Id");
+                    b.ToTable("LawyerWorkingSchedules", t =>
+                        {
+                            t.HasCheckConstraint("CK_Schedule_Day", "\"DayOfWeek\" BETWEEN 0 AND 6");
 
-    b.HasIndex("LawyerId", "DayOfWeek")
-        .IsUnique();
+                            t.HasCheckConstraint("CK_Schedule_Time", "NOT \"IsWorkingDay\" OR \"StartTime\" < \"EndTime\"");
+                        });
+                });
 
-    b.ToTable("LawyerWorkingSchedules", t =>
-    {
-        t.HasCheckConstraint(
-            "CK_Schedule_Day",
-            "\"DayOfWeek\" BETWEEN 0 AND 6");
+            modelBuilder.Entity("LegalService.API.Models.Entities.LegalDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
-        t.HasCheckConstraint(
-            "CK_Schedule_Time",
-            "NOT \"IsWorkingDay\" OR \"StartTime\" < \"EndTime\"");
-    });
-});
+                    b.Property<string>("ActNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
-modelBuilder.Entity("LegalService.API.Models.Entities.LegalDocument", b =>
-{
-    b.Property<Guid>("Id")
-        .ValueGeneratedOnAdd()
-        .HasColumnType("uuid");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
-    b.Property<string>("ActNumber")
-        .HasMaxLength(100)
-        .HasColumnType("character varying(100)");
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
-    b.Property<DateTime>("CreatedAt")
-        .HasColumnType("timestamp with time zone");
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
 
-    b.Property<string>("DocumentType")
-        .IsRequired()
-        .HasMaxLength(100)
-        .HasColumnType("character varying(100)");
+                    b.Property<string>("FullText")
+                        .IsRequired()
+                        .HasColumnType("text");
 
-    b.Property<string>("ExternalId")
-        .HasMaxLength(300)
-        .HasColumnType("character varying(300)");
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("boolean");
 
-    b.Property<string>("FullText")
-        .IsRequired()
-        .HasColumnType("text");
+                    b.Property<string>("OfficialUrl")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
-    b.Property<bool>("IsPublished")
-        .HasColumnType("boolean");
+                    b.Property<DateTime?>("PublishedDate")
+                        .HasColumnType("timestamp with time zone");
 
-    b.Property<string>("OfficialUrl")
-        .HasMaxLength(1000)
-        .HasColumnType("character varying(1000)");
+                    b.Property<string>("SourceName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
-    b.Property<DateTime?>("PublishedDate")
-        .HasColumnType("timestamp with time zone");
+                    b.Property<string>("Summary")
+                        .HasColumnType("text");
 
-    b.Property<string>("SourceName")
-        .IsRequired()
-        .HasMaxLength(100)
-        .HasColumnType("character varying(100)");
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
-    b.Property<string>("Summary")
-        .HasColumnType("text");
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
-    b.Property<string>("Title")
-        .IsRequired()
-        .HasMaxLength(500)
-        .HasColumnType("character varying(500)");
+                    b.HasKey("Id");
 
-    b.Property<DateTime?>("UpdatedAt")
-        .HasColumnType("timestamp with time zone");
+                    b.HasIndex("ExternalId")
+                        .IsUnique();
 
-    b.HasKey("Id");
+                    b.ToTable("LegalDocuments");
+                });
 
-    b.HasIndex("ExternalId")
-        .IsUnique();
+            modelBuilder.Entity("LegalService.API.Models.Entities.LegalIntelligenceCourtCase", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
 
-    b.ToTable("LegalDocuments");
-});
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<string>("CaseNumber")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
+                    b.Property<string>("Court")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
 
+                    b.Property<DateTime?>("DecisionDate")
+                        .HasColumnType("date");
 
+                    b.Property<string>("DecisionType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
+                    b.Property<bool>("IsPublished")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
+                    b.Property<bool>("IsVerified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
+                    b.Property<string>("Judge")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Keywords")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Legislation")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("{}");
+
+                    b.Property<string>("PageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RawText")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SourceDomain")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SourceName")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasDefaultValue("Court of Appeal of Sri Lanka");
+
+                    b.Property<string>("SourceTrustLevel")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("OFFICIAL");
+
+                    b.Property<string>("SourceUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Summary")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Court", "DecisionType", "CaseNumber", "DecisionDate")
+                        .IsUnique();
+
+                    b.ToTable("LegalIntelligenceCourtCases", (string)null);
+                });
+
+            modelBuilder.Entity("LegalService.API.Models.Entities.LegalIntelligenceDocument", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ActNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("DetailUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsPublished")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsVerified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("{}");
+
+                    b.Property<string>("OfficialUrl")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PublishedDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("RawText")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SourceDomain")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SourceName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SourceTrustLevel")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("OFFICIAL");
+
+                    b.Property<string>("Summary")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<int?>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExternalId")
+                        .IsUnique()
+                        .HasFilter("\"ExternalId\" IS NOT NULL");
+
+                    b.ToTable("LegalIntelligenceDocuments", (string)null);
+                });
+
+            modelBuilder.Entity("LegalService.API.Models.Entities.LegalIntelligenceIngestionRun", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DiscoveredCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("{}");
+
+                    b.Property<int>("RejectedCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("SavedCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("SourceName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("RUNNING");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceType");
+
+                    b.HasIndex("StartedAt");
+
+                    b.ToTable("LegalIntelligenceIngestionRuns", (string)null);
+                });
 
             modelBuilder.Entity("LegalService.API.Models.Entities.LegalService", b =>
                 {
@@ -1014,32 +1263,33 @@ modelBuilder.Entity("LegalService.API.Models.Entities.LegalDocument", b =>
 
                     b.ToTable("LegalServices");
 
-b.HasData(
-    new
-    {
-        LegalServiceId = 1,
-        Category = "Criminal Law",
-        CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3860),
-        Description = "Representation and case review for criminal defense cases.",
-        ServiceName = "Criminal Defense Consulting"
-    },
-    new
-    {
-        LegalServiceId = 2,
-        Category = "Family Law",
-        CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3860),
-        Description = "Preparation and filing for divorce and child custody.",
-        ServiceName = "Divorce & Custody Filing"
-    },
-    new
-    {
-        LegalServiceId = 3,
-        Category = "Corporate Law",
-        CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3860),
-        Description = "Incorporation filings and compliance setup.",
-        ServiceName = "Corporate Registration & Compliance"
-    });
-});
+                    b.HasData(
+                        new
+                        {
+                            LegalServiceId = 1,
+                            Category = "Criminal Law",
+                            CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3860),
+                            Description = "Representation and case review for criminal defense cases.",
+                            ServiceName = "Criminal Defense Consulting"
+                        },
+                        new
+                        {
+                            LegalServiceId = 2,
+                            Category = "Family Law",
+                            CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3860),
+                            Description = "Preparation and filing for divorce and child custody.",
+                            ServiceName = "Divorce & Custody Filing"
+                        },
+                        new
+                        {
+                            LegalServiceId = 3,
+                            Category = "Corporate Law",
+                            CreatedAt = new DateTime(2026, 10, 4, 15, 11, 10, 985, DateTimeKind.Utc).AddTicks(3860),
+                            Description = "Incorporation filings and compliance setup.",
+                            ServiceName = "Corporate Registration & Compliance"
+                        });
+                });
+
             modelBuilder.Entity("LegalService.API.Models.Entities.PracticeAreaWorkforceSetting", b =>
                 {
                     b.Property<int>("Id")
