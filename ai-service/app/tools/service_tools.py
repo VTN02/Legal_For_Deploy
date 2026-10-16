@@ -18,8 +18,12 @@ logger = logging.getLogger(__name__)
 
 async def get_all_services() -> list[dict]:
     """Fetch all active documentation services from the backend."""
-    backend = get_backend_client()
-    return await backend.get_all_services(include_inactive=False)
+    try:
+        backend = get_backend_client()
+        return await backend.get_all_services(include_inactive=False)
+    except Exception as e:
+        logger.warning("Failed to fetch services from backend: %s", e)
+        return []
 
 
 async def get_service_requirements(service_id: int) -> list[str]:
