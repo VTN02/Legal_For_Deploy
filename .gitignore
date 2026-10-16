@@ -499,6 +499,9 @@ ai-service/scratch/
 *.env
 !*.env.example
 
+# ASP.NET Development secrets (contains real credentials)
+appsettings.Development.json
+
 # Node / Frontend
 node_modules/
 frontend/dist/
