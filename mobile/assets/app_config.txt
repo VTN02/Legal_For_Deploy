@@ -1,2 +1,2 @@
-BACKEND_URL=http://10.220.152.23:5000
-AI_SERVICE_URL=http://10.220.152.23:8001
+BACKEND_URL=https://backend-production-a763.up.railway.app
+AI_SERVICE_URL=https://ai-production-ef4c.up.railway.app
